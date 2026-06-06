@@ -1,0 +1,12 @@
+documentation.md
+pyproject.toml
+src/undoomed/__init__.py
+src/undoomed/cli.py
+src/undoomed/server.py
+src/undoomed/socratic_reviewer.py
+src/undoomed.egg-info/PKG-INFO
+src/undoomed.egg-info/SOURCES.txt
+src/undoomed.egg-info/dependency_links.txt
+src/undoomed.egg-info/entry_points.txt
+src/undoomed.egg-info/requires.txt
+src/undoomed.egg-info/top_level.txt

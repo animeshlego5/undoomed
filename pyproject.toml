@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "undoomed"
+version = "1.0.0"
+description = "Un-doomed — the Socratic AI code reviewer that makes you think."
+readme = "documentation.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Un-doomed" }]
+keywords = ["code-review", "socratic", "langgraph", "llm", "cli", "fastapi"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Quality Assurance",
+]
+
+# Core dependencies — enough to run BOTH the `undoom` CLI and the backend server
+# with the default OpenAI provider.
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.27",
+    "langgraph>=0.2.0",
+    "langgraph-checkpoint-sqlite>=2.0.0",
+    "langchain-core>=0.3.0",
+    "langchain-openai>=0.2.0",
+    "pydantic>=2.0",
+    "python-dotenv>=1.0",
+    "click>=8.1",
+    "rich>=13.0",
+    "requests>=2.31",
+]
+
+# Extra AI providers — install the one(s) you want, e.g. pip install -e ".[anthropic]"
+[project.optional-dependencies]
+anthropic = ["langchain-anthropic>=0.2"]
+gemini = ["langchain-google-genai>=2.0"]
+deepseek = ["langchain-deepseek>=0.1"]
+all = [
+    "langchain-anthropic>=0.2",
+    "langchain-google-genai>=2.0",
+    "langchain-deepseek>=0.1",
+]
+
+[project.urls]
+Documentation = "https://github.com/your-org/undoomed/blob/main/documentation.md"
+
+# The globally-accessible commands. `undoom` maps to the click group in cli.py,
+# which exposes the `check` and `serve` subcommands.
+[project.scripts]
+undoom = "undoomed.cli:cli"
+
+# src/ layout: the importable package is src/undoomed/.
+[tool.setuptools.packages.find]
+where = ["src"]

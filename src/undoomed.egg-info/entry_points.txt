@@ -1,0 +1,2 @@
+[console_scripts]
+undoom = undoomed.cli:cli

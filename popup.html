@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="popup.css" />
+    <title>Un-doomed</title>
+  </head>
+  <body>
+    <main class="panel">
+      <!-- Brand header: minimal mark + name + tagline -->
+      <header class="brand">
+        <div class="brand__mark" aria-hidden="true">&#9097;</div>
+        <div class="brand__text">
+          <h1 class="brand__name">Un-doomed</h1>
+          <p class="brand__tagline">Hints, not answers.</p>
+        </div>
+      </header>
+
+      <!-- The single primary action -->
+      <button id="review-btn" class="btn" type="button">
+        Request Socratic Review
+      </button>
+
+      <!-- Live status / error line -->
+      <p id="status" class="status" role="status" aria-live="polite"></p>
+
+      <!-- Result card: hidden until we have something to show -->
+      <section id="result" class="result" hidden>
+        <div class="result__head">
+          <span id="result-label" class="result__label">Socratic Hints</span>
+          <span id="status-pill" class="pill"></span>
+        </div>
+        <pre id="result-body" class="result__body"></pre>
+      </section>
+
+      <!-- Footer: settings link + the persistent session id -->
+      <footer class="foot">
+        <button id="open-settings" class="foot__link" type="button">
+          &#9881; Settings
+        </button>
+        <span id="thread" class="foot__thread"></span>
+      </footer>
+    </main>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

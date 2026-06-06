@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Un-doomed — The Socratic AI Code Reviewer</title>
+    <meta
+      name="description"
+      content="Stop scrolling. Start building. Un-doomed is the Socratic AI code reviewer that forces you to think — hints, not answers."
+    />
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Newsreader:ital,opsz@1,6..72&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Tailwind via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              surface: "#fbfbfd",
+              ink: "#1c1c28",
+              muted: "#6b7280",
+              line: "#ececf1",
+              accent: { DEFAULT: "#4f46e5", dark: "#4338ca", soft: "#eef2ff" },
+            },
+            fontFamily: {
+              sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"],
+              serif: ["Newsreader", "ui-serif", "Georgia", "serif"],
+            },
+          },
+        },
+      };
+    </script>
+
+    <style>
+      /* Calm, anti-doomscrolling surface: a soft off-white with a faint grid. */
+      body {
+        background-color: #fbfbfd;
+        background-image: radial-gradient(#e9e9f2 1px, transparent 1px);
+        background-size: 28px 28px;
+      }
+      .glass {
+        backdrop-filter: saturate(180%) blur(10px);
+        background: rgba(251, 251, 253, 0.8);
+      }
+      .accent-gradient {
+        background: linear-gradient(120deg, #4f46e5 0%, #7c6cf0 50%, #4338ca 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      .reveal { animation: fadeUp 0.7s ease both; }
+      .reveal-2 { animation: fadeUp 0.7s ease 0.1s both; }
+      .reveal-3 { animation: fadeUp 0.7s ease 0.2s both; }
+      .card-hover {
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+      }
+      .card-hover:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 18px 40px -22px rgba(79, 70, 229, 0.45);
+        border-color: #c9c6f5;
+      }
+    </style>
+  </head>
+
+  <body class="font-sans text-ink antialiased">
+    <!-- ===================== NAV ===================== -->
+    <header class="sticky top-0 z-30 border-b border-line/70 glass">
+      <nav class="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
+        <a href="#top" class="flex items-center gap-2.5">
+          <span
+            class="grid h-9 w-9 place-items-center rounded-xl bg-accent text-lg font-bold text-white shadow-sm"
+            >⌁</span
+          >
+          <span class="text-[17px] font-bold tracking-tight">Un-doomed</span>
+        </a>
+        <div class="hidden items-center gap-8 text-sm font-medium text-muted md:flex">
+          <a href="#how" class="transition hover:text-ink">How it works</a>
+          <a href="#downloads" class="transition hover:text-ink">Downloads</a>
+          <a href="#faq" class="transition hover:text-ink">FAQ</a>
+        </div>
+        <a
+          href="#downloads"
+          class="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-accent-dark"
+          >Get started</a
+        >
+      </nav>
+    </header>
+
+    <main id="top">
+      <!-- ===================== HERO ===================== -->
+      <section class="relative overflow-hidden">
+        <div
+          class="pointer-events-none absolute -top-40 left-1/2 h-[34rem] w-[34rem] -translate-x-1/2 rounded-full bg-accent/10 blur-3xl"
+        ></div>
+        <div class="mx-auto max-w-6xl px-5 pb-16 pt-20 text-center md:pt-28">
+          <span
+            class="reveal inline-flex items-center gap-2 rounded-full border border-line bg-white px-3.5 py-1.5 text-xs font-semibold text-accent shadow-sm"
+          >
+            <span class="h-1.5 w-1.5 rounded-full bg-accent"></span>
+            Socratic AI code review · hints, not answers
+          </span>
+
+          <h1
+            class="reveal-2 mx-auto mt-6 max-w-3xl text-4xl font-extrabold leading-[1.08] tracking-tight md:text-6xl"
+          >
+            Stop scrolling.<br />
+            Start <span class="accent-gradient">building.</span>
+          </h1>
+
+          <p class="reveal-2 mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted">
+            Un-doomed is the Socratic AI code reviewer that
+            <span class="font-semibold text-ink">forces you to think</span>. It hunts
+            your edge cases, asks the questions that lead you to the bug, and only
+            critiques style once your logic is sound.
+          </p>
+
+          <div class="reveal-3 mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <a
+              href="#downloads"
+              class="w-full rounded-xl bg-accent px-6 py-3 text-center text-sm font-semibold text-white shadow-md transition hover:bg-accent-dark sm:w-auto"
+              >Get the browser extension</a
+            >
+            <a
+              href="#cli"
+              class="w-full rounded-xl border border-line bg-white px-6 py-3 text-center text-sm font-semibold text-ink shadow-sm transition hover:border-accent/40 sm:w-auto"
+              >Install the CLI</a
+            >
+          </div>
+
+          <!-- Terminal mock -->
+          <div
+            class="reveal-3 mx-auto mt-14 max-w-2xl overflow-hidden rounded-2xl border border-line bg-white text-left shadow-xl"
+          >
+            <div class="flex items-center gap-1.5 border-b border-line px-4 py-3">
+              <span class="h-3 w-3 rounded-full bg-[#ff5f57]"></span>
+              <span class="h-3 w-3 rounded-full bg-[#febc2e]"></span>
+              <span class="h-3 w-3 rounded-full bg-[#28c840]"></span>
+              <span class="ml-2 text-xs font-medium text-muted">undoom check</span>
+            </div>
+            <pre class="overflow-x-auto px-5 py-4 text-[13px] leading-relaxed"><code><span class="text-muted">$</span> <span class="font-semibold">undoom check</span> two_sum.py
+<span class="text-accent font-semibold">Un-doomed</span> | two_sum.py | openai
+
+<span class="text-amber-600">⚠  Edge-case faults found</span>
+  • Does not handle an empty input list
+  • Returns nothing when no valid pair exists
+
+<span class="text-fuchsia-600">🤔 Socratic Hints</span>
+  What should your function return if <span class="text-ink">nums</span> is empty?
+  Trace your loop when no two numbers add up — where does it end?</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== HOW IT WORKS ===================== -->
+      <section id="how" class="mx-auto max-w-6xl px-5 py-16 md:py-24">
+        <div class="mx-auto max-w-2xl text-center">
+          <h2 class="text-3xl font-bold tracking-tight md:text-4xl">
+            Three reviewers, one rule:
+            <span class="font-serif italic text-accent">make you think.</span>
+          </h2>
+          <p class="mt-4 text-muted">
+            Un-doomed never just hands over the answer. It reviews in the order a
+            great mentor would.
+          </p>
+        </div>
+
+        <div class="mt-12 grid gap-6 md:grid-cols-3">
+          <div class="rounded-2xl border border-line bg-white p-6 shadow-sm">
+            <div class="grid h-11 w-11 place-items-center rounded-xl bg-accent-soft text-xl">🛡️</div>
+            <h3 class="mt-4 text-lg font-semibold">1 · Edge-Case Executioner</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">
+              A ruthless auditor that checks correctness first — empty inputs,
+              duplicates, "no solution", off-by-ones. Style comes later.
+            </p>
+          </div>
+          <div class="rounded-2xl border border-line bg-white p-6 shadow-sm">
+            <div class="grid h-11 w-11 place-items-center rounded-xl bg-accent-soft text-xl">🤔</div>
+            <h3 class="mt-4 text-lg font-semibold">2 · Socratic Tutor</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">
+              Turns each bug into a question that leads you to the fix yourself —
+              zero code handed over (until you're truly stuck).
+            </p>
+          </div>
+          <div class="rounded-2xl border border-line bg-white p-6 shadow-sm">
+            <div class="grid h-11 w-11 place-items-center rounded-xl bg-accent-soft text-xl">✨</div>
+            <h3 class="mt-4 text-lg font-semibold">3 · Clean-Code Critic</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted">
+              Once your logic is sound, it reviews Big-O complexity and style — so
+              you ship code that's correct <em>and</em> clean.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== DOWNLOADS ===================== -->
+      <section id="downloads" class="border-y border-line/70 bg-white/60">
+        <div class="mx-auto max-w-6xl px-5 py-16 md:py-24">
+          <div class="mx-auto max-w-2xl text-center">
+            <h2 class="text-3xl font-bold tracking-tight md:text-4xl">
+              Bring it everywhere you code
+            </h2>
+            <p class="mt-4 text-muted">
+              Same brain, your choice of surface. Bring your own API key — it stays
+              on your machine.
+            </p>
+          </div>
+
+          <div class="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            <!-- Chrome Extension -->
+            <article
+              class="card-hover flex flex-col rounded-2xl border border-line bg-white p-6 shadow-sm"
+            >
+              <div class="flex items-center justify-between">
+                <div class="grid h-11 w-11 place-items-center rounded-xl bg-accent-soft text-xl">🧩</div>
+                <span class="rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-semibold text-green-700">Available</span>
+              </div>
+              <h3 class="mt-4 text-lg font-semibold">Browser Extension</h3>
+              <p class="mt-2 flex-1 text-sm leading-relaxed text-muted">
+                Review your LeetCode solution right on the page. Works in Chrome &
+                Edge (Manifest V3).
+              </p>
+              <button
+                type="button"
+                data-open="modal-extension"
+                class="mt-5 inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-accent-dark"
+              >
+                Get Beta Access
+                <span aria-hidden="true">→</span>
+              </button>
+            </article>
+
+            <!-- CLI Tool -->
+            <article
+              id="cli"
+              class="card-hover flex flex-col rounded-2xl border border-line bg-white p-6 shadow-sm"
+            >
+              <div class="flex items-center justify-between">
+                <div class="grid h-11 w-11 place-items-center rounded-xl bg-accent-soft text-xl">⌨️</div>
+                <span class="rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-semibold text-green-700">Available</span>
+              </div>
+              <h3 class="mt-4 text-lg font-semibold">CLI Tool</h3>
+              <p class="mt-2 flex-1 text-sm leading-relaxed text-muted">
+                Review any file from your terminal:
+                <code class="rounded bg-line/60 px-1 py-0.5 text-[12px]">undoom check app.py</code>
+              </p>
+              <div
+                class="mt-5 flex items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2.5"
+              >
+                <code id="cli-cmd" class="text-[13px] font-medium">pip install undoomed</code>
+                <button
+                  onclick="copyCmd(this)"
+                  class="shrink-0 rounded-md border border-line bg-white px-2 py-1 text-[11px] font-semibold text-muted transition hover:text-accent"
+                  aria-label="Copy install command"
+                >
+                  Copy
+                </button>
+              </div>
+            </article>
+
+            <!-- VS Code Extension -->
+            <article
+              class="flex flex-col rounded-2xl border border-dashed border-line bg-white/50 p-6"
+            >
+              <div class="flex items-center justify-between">
+                <div class="grid h-11 w-11 place-items-center rounded-xl bg-line/50 text-xl grayscale">🆚</div>
+                <span class="rounded-full bg-line/70 px-2.5 py-1 text-[11px] font-semibold text-muted">Coming soon</span>
+              </div>
+              <h3 class="mt-4 text-lg font-semibold text-muted">VS Code Extension</h3>
+              <p class="mt-2 flex-1 text-sm leading-relaxed text-muted">
+                Inline Socratic review without leaving your editor.
+              </p>
+              <button
+                disabled
+                class="mt-5 cursor-not-allowed rounded-lg border border-line bg-surface px-4 py-2.5 text-sm font-semibold text-muted/70"
+              >
+                Coming soon
+              </button>
+            </article>
+
+            <!-- Claude agent.md -->
+            <article
+              class="card-hover flex flex-col rounded-2xl border border-line bg-white p-6 shadow-sm"
+            >
+              <div class="flex items-center justify-between">
+                <div class="grid h-11 w-11 place-items-center rounded-xl bg-accent-soft text-xl">📄</div>
+                <span class="rounded-full bg-green-50 px-2.5 py-1 text-[11px] font-semibold text-green-700">Template</span>
+              </div>
+              <h3 class="mt-4 text-lg font-semibold">Claude <code class="text-[13px]">agent.md</code></h3>
+              <p class="mt-2 flex-1 text-sm leading-relaxed text-muted">
+                A drop-in agent spec so Claude Code and Cursor review the Un-doomed
+                way.
+              </p>
+              <button
+                type="button"
+                data-open="modal-agent"
+                class="mt-5 inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-white px-4 py-2.5 text-sm font-semibold text-accent transition hover:border-accent/40 hover:bg-accent-soft"
+              >
+                View instructions
+              </button>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================== FAQ / CLOSING ===================== -->
+      <section id="faq" class="mx-auto max-w-3xl px-5 py-16 md:py-24">
+        <h2 class="text-center text-3xl font-bold tracking-tight md:text-4xl">
+          Calm by design
+        </h2>
+        <div class="mt-10 space-y-4">
+          <details class="group rounded-xl border border-line bg-white p-5" open>
+            <summary class="cursor-pointer list-none font-semibold">
+              Why "Un-doomed"?
+            </summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted">
+              It saves you from the two dooms of learning to code: getting stuck for
+              hours, or copy-pasting an answer you don't understand. You stay in the
+              productive middle — thinking.
+            </p>
+          </details>
+          <details class="group rounded-xl border border-line bg-white p-5">
+            <summary class="cursor-pointer list-none font-semibold">
+              Which AI models can I use?
+            </summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted">
+              OpenAI, Anthropic (Claude), Google Gemini, or DeepSeek. You bring your
+              own API key, and it never leaves your machine.
+            </p>
+          </details>
+          <details class="group rounded-xl border border-line bg-white p-5">
+            <summary class="cursor-pointer list-none font-semibold">
+              Is my code or key sent anywhere?
+            </summary>
+            <p class="mt-3 text-sm leading-relaxed text-muted">
+              Only to a small server that runs on your own computer, which then calls
+              your chosen AI provider with your key. No Un-doomed cloud in between.
+            </p>
+          </details>
+        </div>
+
+        <div
+          class="mt-14 rounded-3xl border border-line bg-gradient-to-br from-accent to-accent-dark p-10 text-center text-white shadow-lg"
+        >
+          <h3 class="text-2xl font-bold md:text-3xl">Think it through. Ship it clean.</h3>
+          <p class="mx-auto mt-3 max-w-md text-sm text-white/85">
+            Add Un-doomed to your workflow and turn every bug into a lesson.
+          </p>
+          <a
+            href="#downloads"
+            class="mt-7 inline-block rounded-xl bg-white px-6 py-3 text-sm font-semibold text-accent shadow transition hover:bg-surface"
+            >Get started — it's free</a
+          >
+        </div>
+      </section>
+    </main>
+
+    <!-- ===================== FOOTER ===================== -->
+    <footer class="border-t border-line/70">
+      <div
+        class="mx-auto flex max-w-6xl flex-col items-center justify-between gap-3 px-5 py-8 text-sm text-muted sm:flex-row"
+      >
+        <div class="flex items-center gap-2">
+          <span class="grid h-7 w-7 place-items-center rounded-lg bg-accent text-sm font-bold text-white">⌁</span>
+          <span class="font-semibold text-ink">Un-doomed</span>
+        </div>
+        <p>Hints, not answers. Built for people who'd rather understand.</p>
+      </div>
+    </footer>
+
+    <!-- ===================== MODAL: Extension beta access ===================== -->
+    <div
+      id="modal-extension"
+      class="modal fixed inset-0 z-50 hidden items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-extension-title"
+    >
+      <div class="absolute inset-0 bg-ink/50 backdrop-blur-sm" data-close></div>
+      <div
+        class="reveal relative z-10 w-full max-w-lg overflow-hidden rounded-2xl border border-line bg-white shadow-2xl"
+      >
+        <div class="flex items-start justify-between gap-4 border-b border-line px-6 py-5">
+          <div class="flex items-center gap-3">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-accent text-lg text-white">🧩</span>
+            <div>
+              <h3 id="modal-extension-title" class="text-lg font-bold">Get Beta Access</h3>
+              <p class="text-xs text-muted">Load the extension in Chrome or Edge</p>
+            </div>
+          </div>
+          <button data-close aria-label="Close" class="rounded-lg p-1.5 text-muted transition hover:bg-line/60 hover:text-ink">✕</button>
+        </div>
+
+        <div class="px-6 py-5">
+          <ol class="space-y-4">
+            <li class="flex gap-3">
+              <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent-soft text-xs font-bold text-accent">1</span>
+              <p class="text-sm leading-relaxed">
+                Download the <code class="rounded bg-line/60 px-1 py-0.5 text-[12px]">.zip</code> below and unzip it. Then open
+                <code class="rounded bg-line/60 px-1 py-0.5 text-[12px]">chrome://extensions</code> or
+                <code class="rounded bg-line/60 px-1 py-0.5 text-[12px]">edge://extensions</code>.
+              </p>
+            </li>
+            <li class="flex gap-3">
+              <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent-soft text-xs font-bold text-accent">2</span>
+              <p class="text-sm leading-relaxed">
+                Turn on <span class="font-semibold">Developer mode</span>, then click
+                <span class="font-semibold">"Load unpacked."</span>
+              </p>
+            </li>
+            <li class="flex gap-3">
+              <span class="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-accent-soft text-xs font-bold text-accent">3</span>
+              <p class="text-sm leading-relaxed">
+                Select the unzipped <code class="rounded bg-line/60 px-1 py-0.5 text-[12px]">undoomed</code> folder. Pin the icon, open a LeetCode problem, and click <span class="font-semibold">Request Socratic Review</span>.
+              </p>
+            </li>
+          </ol>
+
+          <a
+            href="undoomed-extension.zip"
+            download
+            class="mt-6 flex items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-accent-dark"
+          >
+            <span aria-hidden="true">↓</span> Download extension (.zip)
+          </a>
+          <p class="mt-3 text-center text-xs text-muted">
+            Then set your AI provider + key in the extension's ⚙ Settings.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== MODAL: agent.md instructions ===================== -->
+    <div
+      id="modal-agent"
+      class="modal fixed inset-0 z-50 hidden items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-agent-title"
+    >
+      <div class="absolute inset-0 bg-ink/50 backdrop-blur-sm" data-close></div>
+      <div
+        class="reveal relative z-10 flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-2xl"
+      >
+        <div class="flex items-start justify-between gap-4 border-b border-line px-6 py-5">
+          <div class="flex items-center gap-3">
+            <span class="grid h-10 w-10 place-items-center rounded-xl bg-accent text-lg text-white">📄</span>
+            <div>
+              <h3 id="modal-agent-title" class="text-lg font-bold">agent.md</h3>
+              <p class="text-xs text-muted">Drop this in your project root for Claude Code / Cursor</p>
+            </div>
+          </div>
+          <button data-close aria-label="Close" class="rounded-lg p-1.5 text-muted transition hover:bg-line/60 hover:text-ink">✕</button>
+        </div>
+
+        <div class="overflow-y-auto px-6 py-5">
+          <pre id="agent-md" class="whitespace-pre-wrap rounded-xl border border-line bg-surface p-4 text-[12.5px] leading-relaxed text-ink"><code># Un-doomed — AI Agent Instructions
+
+You are a Socratic code reviewer, not a code-writer-for-hire. Your purpose is to
+make the developer think and arrive at the answer themselves.
+
+## The Prime Directive
+When asked to review, check, debug, or "fix" code:
+&gt; Do NOT write the fix. Do NOT output corrected code, patches, diffs, or
+&gt; pseudo-code. Guide the developer to find and fix it themselves.
+
+## Your workflow
+1. Identify the file under review (ask if unclear).
+2. Ensure the server is running, else:  undoom serve
+3. Run the reviewer and read its output:
+   undoom check &lt;filename&gt; --task "&lt;what the code should do&gt;"
+4. Turn the reported faults + hints into POINTED QUESTIONS, never fixes:
+   - "What does your function return when the input list is empty?"
+   - "Trace your loop when no pair adds up — where does it stop?"
+5. Let the developer reason to the cause and write the change themselves.
+6. ONLY once Un-doomed reports "approved" may you discuss STYLE (Big-O,
+   readability) — and still as suggestions, not rewrites.
+
+## Hard rules
+- NEVER paste runnable code, pseudo-code, or a code block as "the answer".
+- NEVER apply an edit that fixes a bug the developer hasn't understood yet.
+- ALWAYS reply with a question that moves them one step closer.
+- If truly stuck after several rounds, explain the CONCEPT in plain English —
+  but let them type the code.
+
+## Tone
+Warm, curious, patient, concise. A mentor confident they can get there.</code></pre>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 border-t border-line px-6 py-4">
+          <button
+            onclick="copyAgent(this)"
+            class="rounded-lg border border-line bg-white px-4 py-2 text-sm font-semibold text-muted transition hover:text-accent"
+          >
+            Copy
+          </button>
+          <a
+            href="agent.md"
+            download
+            class="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-dark"
+          >
+            Download agent.md
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ---- Modal open/close -------------------------------------------------
+      function openModal(id) {
+        const m = document.getElementById(id);
+        if (!m) return;
+        m.classList.remove("hidden");
+        m.classList.add("flex");
+        document.body.style.overflow = "hidden";
+      }
+      function closeModal(m) {
+        m.classList.add("hidden");
+        m.classList.remove("flex");
+        document.body.style.overflow = "";
+      }
+      document.addEventListener("click", (e) => {
+        const opener = e.target.closest("[data-open]");
+        if (opener) {
+          openModal(opener.getAttribute("data-open"));
+          return;
+        }
+        if (e.target.closest("[data-close]")) {
+          const modal = e.target.closest(".modal");
+          if (modal) closeModal(modal);
+        }
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          document.querySelectorAll(".modal:not(.hidden)").forEach(closeModal);
+        }
+      });
+
+      // Copy the agent.md contents.
+      function copyAgent(btn) {
+        const text = document.getElementById("agent-md").innerText;
+        navigator.clipboard.writeText(text).then(() => {
+          const original = btn.textContent;
+          btn.textContent = "Copied!";
+          setTimeout(() => (btn.textContent = original), 1500);
+        });
+      }
+
+      // Copy-to-clipboard for the CLI install command.
+      function copyCmd(btn) {
+        const text = document.getElementById("cli-cmd").textContent.trim();
+        navigator.clipboard.writeText(text).then(
+          () => {
+            const original = btn.textContent;
+            btn.textContent = "Copied!";
+            btn.classList.add("text-accent");
+            setTimeout(() => {
+              btn.textContent = original;
+            }, 1500);
+          },
+          () => {
+            btn.textContent = "Press Ctrl+C";
+          }
+        );
+      }
+    </script>
+  </body>
+</html>

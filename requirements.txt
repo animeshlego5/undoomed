@@ -1,0 +1,20 @@
+# NOTE: pyproject.toml is now the canonical dependency list. The recommended
+# install is `pip install -e .` (which also creates the `undoom` command and
+# pulls in click/rich/requests for the CLI). This file is kept for convenience
+# / non-packaged use and lists the backend libraries only.
+langgraph>=0.2.0
+langgraph-checkpoint-sqlite>=2.0.0
+langchain-core>=0.3.0
+langchain-openai>=0.2.0
+pydantic>=2.0
+python-dotenv>=1.0
+fastapi>=0.110
+uvicorn[standard]>=0.27
+
+# Optional LLM providers — install only the one you select via LLM_PROVIDER:
+#   pip install langchain-anthropic       # LLM_PROVIDER=anthropic  (Claude)
+#   pip install langchain-google-genai    # LLM_PROVIDER=gemini
+#   pip install langchain-deepseek        # LLM_PROVIDER=deepseek
+
+# Optional CLI client (cli.py) — only needed to run `undoom check <file>`:
+#   pip install click rich requests

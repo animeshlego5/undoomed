@@ -1,0 +1,204 @@
+/* =============================================================================
+   Un-doomed options/settings page — same calm brand as the popup, full-page.
+   ============================================================================= */
+
+:root {
+  --bg: #fbfbfd;
+  --surface: #ffffff;
+  --ink: #1c1c28;
+  --muted: #6b7280;
+  --line: #ececf1;
+  --accent: #4f46e5;
+  --accent-press: #4338ca;
+  --ok: #16a34a;
+  --warn: #b45309;
+  --danger: #b91c1c;
+  --radius: 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+    Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.wrap {
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Brand header */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand__mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 700;
+}
+.brand__name {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.brand__tagline {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* Card / form */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field__label {
+  font-size: 13px;
+  font-weight: 600;
+}
+.field__hint {
+  font-weight: 400;
+  color: var(--muted);
+}
+.field__input {
+  width: 100%;
+  padding: 9px 11px;
+  font-size: 14px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  font-family: inherit;
+}
+.field__input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+}
+
+/* API key row with show/hide toggle */
+.field__keyrow {
+  display: flex;
+  gap: 8px;
+}
+.field__keyrow .field__input {
+  flex: 1;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+}
+.field__toggle {
+  flex: 0 0 auto;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  cursor: pointer;
+}
+.field__toggle:hover {
+  color: var(--ink);
+}
+
+/* Save button */
+.btn {
+  appearance: none;
+  border: 0;
+  cursor: pointer;
+  align-self: flex-start;
+  padding: 10px 18px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+  transition: background 0.15s ease, transform 0.02s ease;
+}
+.btn:hover {
+  background: var(--accent-press);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.btn-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.btn--ghost {
+  background: #fff;
+  color: var(--accent);
+  border: 1px solid var(--line);
+}
+.btn--ghost:hover {
+  background: #f6f6fb;
+  color: var(--accent-press);
+}
+
+/* Status line */
+.status {
+  margin: 0;
+  min-height: 18px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.status--ok {
+  color: var(--ok);
+}
+.status--warn {
+  color: var(--warn);
+}
+.status--error {
+  color: var(--danger);
+}
+
+/* Footnote */
+.note {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.note code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  background: #f1f1f5;
+  padding: 1px 5px;
+  border-radius: 5px;
+}

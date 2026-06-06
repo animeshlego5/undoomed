@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="options.css" />
+    <title>Un-doomed — Settings</title>
+  </head>
+  <body>
+    <main class="wrap">
+      <header class="brand">
+        <div class="brand__mark" aria-hidden="true">&#9097;</div>
+        <div>
+          <h1 class="brand__name">Un-doomed Settings</h1>
+          <p class="brand__tagline">Choose your AI provider and enter your key.</p>
+        </div>
+      </header>
+
+      <form id="settings-form" class="card">
+        <label class="field" for="provider">
+          <span class="field__label">AI provider</span>
+          <select id="provider" class="field__input">
+            <option value="openai">OpenAI &mdash; gpt-4o-mini</option>
+            <option value="anthropic">Anthropic (Claude) &mdash; claude-opus-4-8</option>
+            <option value="gemini">Google Gemini &mdash; gemini-2.0-flash</option>
+            <option value="deepseek">DeepSeek &mdash; deepseek-chat</option>
+          </select>
+        </label>
+
+        <label class="field" for="model">
+          <span class="field__label">
+            Model <span class="field__hint">(optional override)</span>
+          </span>
+          <input id="model" class="field__input" type="text" autocomplete="off"
+                 spellcheck="false" placeholder="leave blank for the default" />
+        </label>
+
+        <div class="field">
+          <label class="field__label" for="api-key">API key</label>
+          <div class="field__keyrow">
+            <input id="api-key" class="field__input" type="password"
+                   autocomplete="off" spellcheck="false" placeholder="sk-..." />
+            <button type="button" id="toggle-key" class="field__toggle">Show</button>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button type="submit" class="btn">Save settings</button>
+          <button type="button" id="test-btn" class="btn btn--ghost">Test connection</button>
+        </div>
+        <p id="status" class="status" role="status" aria-live="polite"></p>
+      </form>
+
+      <p class="note">
+        Your key is stored only in this browser (<code>chrome.storage.local</code>)
+        and is sent to your local Un-doomed server at
+        <code>127.0.0.1:8000</code>. Keep that server on your own machine; the key
+        is not encrypted at rest, so don't use this on a shared computer.
+      </p>
+    </main>
+
+    <script src="options.js"></script>
+  </body>
+</html>
