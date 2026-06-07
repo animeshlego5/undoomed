@@ -243,122 +243,99 @@ that is intentionally out of scope for now.)
 ### 6.1 What a Chrome extension is
 
 A Chrome extension is a tiny bundle of files Chrome loads to add a feature. Ours
-adds a toolbar button; clicking it opens a small **popup panel**. The extension
-follows **Manifest V3**, the current standard Google requires.
+adds a toolbar button AND on-page controls right on the LeetCode page. The
+extension follows **Manifest V3**, the current standard Google requires.
+
+Since Prompt 17 the work is split across three kinds of script, which is the
+normal MV3 shape: a **service worker** (`background.js`) does the privileged work
+(reading the editor, calling the backend); a **content script** (`content.js`)
+draws the on-page buttons and results panel; and the **toolbar popup**
+(`popup.js`) is just a convenient second button.
 
 ### 6.2 `manifest.json` — the ID card and permission slip
 
 This file tells Chrome:
 
 - The extension's **name**, **version**, and **description**.
-- Its **permissions** — the abilities it needs:
-  - `storage` — to save the `thread_id` so it persists between visits.
-  - `activeTab` — to act on the tab the user is currently looking at.
-  - `scripting` — to run a small reader function inside the page (needed to grab
-    the code from Monaco; see below).
-- Its **host permissions** — the websites it may talk to:
-  - `https://leetcode.com/*` — to read the problem pages.
-  - `http://127.0.0.1:8000/*` — to reach your local backend.
-- Its **action** — that clicking the toolbar icon opens `popup.html`.
-- Its **content script** — that `content.js` should be auto-loaded on any
+- Its **permissions** — `storage` (save settings + history), `activeTab`, and
+  `scripting` (run a small reader function inside the page to grab the code from
+  Monaco).
+- Its **host permissions** — the sites it may talk to: `leetcode.com` (read the
+  problems), your local backend, and the deployed backends (`*.onrender.com`,
+  `*.up.railway.app`).
+- Its **action** — clicking the toolbar icon opens `popup.html`.
+- Its **background service worker** — `background.js` (the review engine, §6.3).
+- Its **content scripts** — `md.js` then `content.js`, auto-loaded on any
   `https://leetcode.com/problems/*` page.
 
-### 6.3 `content.js` — the page reader (and the Monaco challenge)
+### 6.3 `background.js` — the service worker (the review engine)
 
-This script runs *inside* the LeetCode page and reads two things:
+This is the brain of the extension client, added in Prompt 17. Whenever any
+button asks for a review (`UNDOOMED_RUN_REVIEW`), the worker does the whole job
+in one place:
 
-1. **The problem description.** Straightforward: it looks through a list of
-   likely page locations (LeetCode renames its internal labels often, so we try
-   several) and grabs the title + statement text.
+1. **Builds a per-problem `thread_id`** — a unique per-browser id plus the
+   problem slug (`<your-id>__<slug>`), so the backend keeps a separate attempt
+   count / memory per problem.
+2. **Reads the full code *and* the selected language** by running a tiny reader
+   in the page's **main world** (where `window.monaco` is reachable). The
+   language is Monaco's own id, e.g. `java` / `python` / `cpp`.
+3. **Asks `content.js`** for the problem description (and a DOM code fallback).
+4. **Reads your settings** (provider, model, key, server password) from storage.
+5. **POSTs** `{ task_description, current_code, language, thread_id, … }` to the
+   backend.
+6. **Saves the result to history** and **pushes it to the on-page panel**
+   (loading → result, or an error message).
 
-2. **The student's code — the tricky part.** LeetCode's editor is **Monaco**.
-   Two complications:
-   - Monaco only keeps the *visible* lines in the page structure (it "recycles"
-     off-screen lines to stay fast). So simply reading the visible text can miss
-     code that's scrolled out of view.
-   - The complete, accurate code lives in Monaco's own memory
-     (`window.monaco`), but a content script runs in a walled-off "isolated
-     world" and is **not allowed to touch the page's own JavaScript** there.
+**Why a service worker?** A content script in Manifest V3 can't make a
+cross-origin request with the extension's privileges (it's limited by the page's
+CORS) and can't reach `window.monaco` on its own. The service worker can do
+both. Putting the logic here means the toolbar popup and the on-page buttons
+share exactly one code path. (The Monaco-recycling problem from earlier still
+applies — Monaco only keeps on-screen lines in the DOM — which is why the worker
+reads Monaco's in-memory model directly, with `content.js`'s DOM scrape as a
+fallback.)
 
-   **The robust solution** (implemented in `popup.js`, see §6.5): use Chrome's
-   `scripting` ability to run a tiny reader function in the page's **main
-   world**, where `window.monaco` *is* reachable, and ask it directly for the
-   full code. `content.js` keeps a simpler **DOM-based reading as a fallback**
-   in case that ever fails. Belt and suspenders.
+### 6.4 `content.js` — the on-page controls, panel, and history
 
-`content.js` waits for a message (`UNDOOMED_SCRAPE`) from the popup and replies
-with `{ task_description, current_code }`. Since Prompt 16 it does much more —
-it also draws the **on-page results overlay** and manages **per-problem
-history** (see §6.6).
+This runs *inside* the LeetCode page (in the isolated world) and owns everything
+you see on the page:
 
-### 6.4 `popup.html` + `popup.css` — the panel
+- **The launcher** — a small floating pill at the bottom-right with two buttons:
+  **Review** (start a review without opening the toolbar popup) and a toggle that
+  opens/closes the panel. A little badge shows how many saved reviews this
+  problem has.
+- **The panel** — a drawer rendered in a **Shadow DOM** (an isolated
+  mini-document, so LeetCode's CSS can't distort it and ours can't leak out). It
+  starts **below LeetCode's top bar** so it never covers the timer/avatar, and it
+  can sit on the **left or right** (your choice — see §6.6). Its header has a
+  **⇄ flip** button and a **×** close button. Inside: a big "Request Socratic
+  Review" button, a **Current** tab (the latest review) and a **History** tab.
+- **Description scraping** — it still answers `UNDOOMED_SCRAPE` with the problem
+  text and a DOM code fallback.
 
-`popup.html` is the *structure* of the panel:
+### 6.5 `popup.html` / `popup.js` — the toolbar trigger
 
-- a small brand header ("Un-doomed — Hints, not answers."),
-- one button: **"Request Socratic Review,"**
-- a status line for progress/errors,
-- a result card that shows either the **Socratic Hints** or the **Style Review**,
-  with a little colored pill saying "Needs revision" or "Approved,"
-- a footer showing the session id.
+The popup is now deliberately thin. It shows the brand, one **"Request Socratic
+Review"** button, a status line, and a footer naming the current problem. When
+clicked it checks you're on a LeetCode problem with an API key set, then asks the
+service worker to run the review — the results appear in the on-page panel. (You
+can ignore the popup entirely and use the on-page **Review** button instead.)
 
-Since Prompt 16 the results normally appear in the **on-page overlay** (§6.6);
-the popup's own card is the fallback when the overlay is turned off. Either way
-the text is now rendered from Markdown into clean headings, lists, and code (via
-`md.js`) instead of being shown raw.
+### 6.6 Choosing the side + per-problem history
 
-`popup.css` is the *looks*. It follows the Un-doomed brand: a calm near-white
-background, a single restrained indigo accent, soft rounded corners, generous
-spacing, and no clutter.
-
-### 6.5 `popup.js` — the logic that ties it together
-
-When the user clicks the button, `popup.js`:
-
-1. **Builds a per-problem `thread_id`.** A unique per-browser id is created once
-   and saved with `chrome.storage.local`; the actual thread id is that id plus
-   the problem's slug (`<your-id>__<slug>`). So the backend keeps a *separate*
-   attempt count and memory for each problem (since Prompt 16 — previously one
-   counter was shared across all problems).
-2. **Checks** that the active tab really is a LeetCode problem page.
-3. **Reads the full code *and the selected language*** by running the tiny reader
-   in the page's main world (the Monaco trick from §6.3). The language is
-   Monaco's own id, e.g. `java`/`python`/`cpp`.
-4. **Asks `content.js`** for the problem description (and a fallback copy of the
-   code).
-5. **Sends** `{ task_description, current_code, language, thread_id, … }` as a
-   POST request to the backend.
-6. **Shows the reply.** If `status` is `approved`, it's the **Style Review**;
-   otherwise the **Socratic Hints**. The result is handed to the on-page overlay
-   (§6.6) and saved to history; if the overlay is off or unreachable, it renders
-   in the popup card instead. All output is escaped before any Markdown
-   formatting is applied, so a response can never inject markup.
-7. **Handles problems gracefully** — e.g. if the backend isn't running, it shows
-   a clear "Is the server running?" message instead of failing silently.
-
-### 6.6 The on-page overlay + history (`content.js`, `md.js`)
-
-From Prompt 16, results appear in a roomy panel drawn directly on the LeetCode
-page rather than only in the cramped popup:
-
-- **Where it lives:** `content.js` injects the panel into a **Shadow DOM** — an
-  isolated mini-document — so LeetCode's CSS can't distort it and its CSS can't
-  affect the page. A small floating **"⏻ Un-doomed"** button (bottom-right)
-  opens and closes it.
-- **What it shows:** a **Current** tab with the latest review (rendered Markdown:
-  headings, lists, `code`, and code blocks) plus a status pill and a meta line
-  (language · attempt # · time), and a **History** tab.
-- **History / no wasted tokens:** every review is cached in
-  `chrome.storage.local` under a key unique to that problem. The History tab
+- **Left or right.** Set a default in **Settings → "On-page panel position"**, or
+  flip it instantly with the **⇄** button on the panel. The choice is saved and
+  applies on every problem (and updates live if you change it in Settings).
+- **History / no wasted tokens.** Every review is cached in
+  `chrome.storage.local` under a key unique to that problem. The **History** tab
   lists past reviews; clicking one re-opens it **instantly with no API call**.
-  This persists across closing the popup *and* reloading the page (the launcher
-  even shows a badge with how many saved reviews exist), so you never have to
+  This survives closing the popup *and* reloading the page, so you never have to
   re-run a review — and re-spend tokens — just to re-read an answer.
-- **The toggle:** Settings has **"Show results as an on-page overlay"** (default
-  on). Turn it off to use the in-popup card instead.
-- **`md.js`:** a tiny, dependency-free, safe Markdown→HTML renderer shared by the
-  popup and the overlay. It escapes all HTML first and then adds only a fixed,
-  known set of tags, so model output cannot inject scripts or arbitrary markup.
+- **`md.js`.** A tiny, dependency-free, **safe** Markdown→HTML renderer used by
+  the panel. It escapes all HTML first and then adds only a fixed, known set of
+  tags, so model output cannot inject scripts or arbitrary markup. This is what
+  turns the raw `###`/`**`/`` `code` `` into clean headings, lists, and code.
 
 ---
 
@@ -920,8 +897,9 @@ working.)
 ## 16. What's next (ideas, not yet built)
 
 - Optional icons for the extension toolbar.
-- Triggering a review from a button *inside* the overlay (today the toolbar
-  popup is what starts a review; the overlay shows + remembers the results).
+- A true button injected into LeetCode's own editor toolbar (today the on-page
+  **Review** button is a floating launcher we fully control — robust against
+  LeetCode's frequent DOM/class renames — rather than injected into their bar).
 - Proper LaTeX/maths rendering in the overlay (today `$O(log n)$` is shown in a
   clean monospace style rather than typeset).
 - Support for more coding sites beyond LeetCode.
@@ -1016,3 +994,52 @@ JS files pass a Node syntax check.
 
 **To get the fixes:** reload the unpacked extension (Extensions → reload), and
 redeploy the backend on Render so the language-aware reviewer is live.
+
+### Prompt 17 — On-page controls, left/right panel, service worker, tidier popup (2026-06-07)
+
+Follow-up fixes from real use: the panel overlapped LeetCode's top bar, there
+was no way to choose its side, reviews could only be started from the toolbar
+popup, and the popup footer showed an ugly giant session id.
+
+**1. The panel no longer overlaps the top bar, and you can choose its side.**
+- The drawer now starts **below** LeetCode's top navigation, so it never covers
+  the timer/avatar/Premium controls.
+- New **Settings → "On-page panel position"** (Left / Right), plus a **⇄ flip**
+  button right on the panel header to switch sides in one click. The choice is
+  saved and even updates live if you change it in Settings. (This replaces the
+  earlier on/off overlay toggle — the panel is now the single results surface.)
+
+**2. Request a review *on the page*, not just from the popup.**
+- The on-page launcher is now a split pill: **⏻ Un-doomed** (open/close the
+  panel) + **Review** (start a review immediately). The panel also has its own
+  big "Request Socratic Review" button. So you can run a full review without ever
+  opening the toolbar popup — similar to how the "Push to GitHub" extension adds
+  an on-page button. (It's a floating launcher we fully control rather than one
+  injected into LeetCode's own toolbar, which would break every time LeetCode
+  renames its CSS classes.)
+
+**3. New service worker (`background.js`) — the shared review engine.**
+- All the review work (read code + language from Monaco, scrape the description,
+  read settings, call the backend, save history, drive the panel) moved into a
+  Manifest V3 **service worker**. Both the popup and the on-page buttons now just
+  send it one message. This is also what makes the on-page button possible: a
+  content script can't do a privileged cross-origin fetch or read `window.monaco`
+  on its own, but the service worker can. `config.js` was tweaked to publish the
+  backend URL on `globalThis` so the worker can `importScripts` it (one URL,
+  still the single edit point).
+
+**4. Tidier popup.** The toolbar popup is now a thin trigger (button + status +
+a one-line tip). The footer shows the **current problem name** (truncated),
+instead of the long `student_…__slug` id that was wrapping and breaking the
+layout. The unused result card was removed.
+
+**Files touched:** `background.js` (new), `manifest.json`, `config.js`,
+`content.js`, `popup.html`, `popup.js`, `popup.css`, `options.html`,
+`options.js`. Backend unchanged.
+
+**Verified:** all JS passes a Node syntax check; `manifest.json` is valid JSON;
+no stray invisible characters. (No backend change, so the Prompt 16 backend
+verification still stands.)
+
+**To get the fixes:** reload the unpacked extension (Extensions → reload). No
+backend redeploy needed for this prompt.

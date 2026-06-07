@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Un-doomed — Socratic Reviewer",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Get Socratic hints (never the answer) on your LeetCode solution, then a style review once the logic is clean. Talks to your local Un-doomed API.",
   "permissions": ["storage", "activeTab", "scripting"],
   "host_permissions": [
