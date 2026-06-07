@@ -165,10 +165,15 @@ reviewer to reviewer. Its boxes:
 
 **1) The Edge-Case Executioner** (`edge_case_executioner`)
 A ruthless senior engineer whose only job is to find where the code would give a
-*wrong answer* — empty inputs, duplicates, "no solution exists," using the same
-item twice, returning nothing, and so on. It is forced to answer in a strict
-yes/no-plus-list format (`has_errors`, `issues`) so the rest of the flowchart
-can trust its verdict. It does **not** care about style.
+*wrong answer* — the smallest allowed inputs, duplicates, "no solution exists,"
+using the same item twice, returning nothing, and so on. It is forced to answer
+in a strict yes/no-plus-list format (`has_errors`, `issues`) so the rest of the
+flowchart can trust its verdict. It does **not** care about style.
+
+A critical rule added in Prompt 19: **the Executioner must respect the problem's
+stated Constraints.** If the problem says "1 ≤ arr.length ≤ 10^4", it will never
+raise "does not handle an empty array." Only faults within the valid input space
+the problem defines count as real bugs.
 
 **2) The Socratic Tutor** (`socratic_tutor`)
 Receives the list of faults and turns each one into a *question* that leads the
@@ -309,8 +314,10 @@ you see on the page:
   mini-document, so LeetCode's CSS can't distort it and ours can't leak out). It
   starts **below LeetCode's top bar** so it never covers the timer/avatar, and it
   can sit on the **left or right** (your choice — see §6.6). Its header has a
-  **⇄ flip** button and a **×** close button. Inside: a big "Request Socratic
-  Review" button, a **Current** tab (the latest review) and a **History** tab.
+  **⚙ settings** button, a **⇄ flip** button and a **×** close button. Inside: a
+  big "Request Socratic Review" button, a **Current** tab (the latest review) and
+  a **History** tab. At the bottom, a **footer** shows the active provider · model
+  and doubles as a second link to Settings.
 - **Description scraping** — it still answers `UNDOOMED_SCRAPE` with the problem
   text and a DOM code fallback.
 
@@ -327,11 +334,19 @@ can ignore the popup entirely and use the on-page **Review** button instead.)
 - **Left or right.** Set a default in **Settings → "On-page panel position"**, or
   flip it instantly with the **⇄** button on the panel. The choice is saved and
   applies on every problem (and updates live if you change it in Settings).
+- **Resize it.** Drag the panel's inner edge (width), bottom edge (height), or
+  bottom corner (both) to make it as wide as you need to read code comfortably.
+  The size is remembered per browser. The **⇲** button (or double-clicking any
+  edge) resets it to the default size.
 - **History / no wasted tokens.** Every review is cached in
   `chrome.storage.local` under a key unique to that problem. The **History** tab
   lists past reviews; clicking one re-opens it **instantly with no API call**.
   This survives closing the popup *and* reloading the page, so you never have to
   re-run a review — and re-spend tokens — just to re-read an answer.
+- **No-change guard.** If you hit **Review** without changing your code since the
+  last review, Un-doomed skips the API call entirely and just re-shows your
+  previous result with a small "no changes in your code" note — so you don't
+  spend tokens getting the same answer.
 - **`md.js`.** A tiny, dependency-free, **safe** Markdown→HTML renderer used by
   the panel. It escapes all HTML first and then adds only a fixed, known set of
   tags, so model output cannot inject scripts or arbitrary markup. This is what
@@ -621,14 +636,19 @@ test or running the backend without the extension).
 
 ### 10.1 The easy way — the extension's Settings page
 
-1. Click the Un-doomed toolbar icon to open the popup, then click **⚙ Settings**
-   (bottom-left). This opens the full Settings page in a new tab.
+1. Open Settings in either of two ways: click the toolbar popup's **⚙ Settings**
+   link, or click the **⚙** button (or the provider · model **footer**) on the
+   on-page panel. Either opens the full Settings page in a new tab.
 2. Pick your **AI provider** from the dropdown.
-3. Optionally type a **model** to override the default.
+3. Choose a **model**. The model field is a dropdown that remembers every model
+   that has passed a **Test connection** for the selected provider, so you can
+   just pick a known-good one. Leave it on **"Default"** to use the provider's
+   default, or choose **"+ Add a new model…"** to type a new model id.
 4. Paste your **API key** into the field and click **Save settings**.
 5. Click **Test connection** to confirm it works — this sends a tiny request to
    your local server with the current values and reports success or the exact
-   error (bad key, server down, missing package) without leaving the page.
+   error (bad key, server down, missing package) without leaving the page. **On
+   success the model is remembered** and added to the dropdown for that provider.
 
 From then on, every review you request sends your chosen provider, model, and
 key to your local server along with the code. Nothing needs to be set on the
@@ -1040,6 +1060,129 @@ layout. The unused result card was removed.
 **Verified:** all JS passes a Node syntax check; `manifest.json` is valid JSON;
 no stray invisible characters. (No backend change, so the Prompt 16 backend
 verification still stands.)
+
+**To get the fixes:** reload the unpacked extension (Extensions → reload). No
+backend redeploy needed for this prompt.
+
+### Prompt 18 — Resizable panel + skip the API call when code is unchanged (2026-06-07)
+
+Two refinements from real use: the panel was too narrow to read the model's code
+examples comfortably, and hitting Review again with no code changes wasted an API
+call for the same answer.
+
+**1. The panel is now resizable.**
+- Drag the **inner edge** to change width, the **bottom edge** to change height,
+  or the **bottom corner** for both. Min sizes keep it usable; it won't grow past
+  the viewport.
+- Your size is remembered (per browser). The **⇲** button next to "Request
+  Socratic Review" — or **double-clicking any edge** — resets it to default.
+- The default width was widened (≈520px) so code examples are readable out of the
+  box.
+
+**2. No wasted API calls when nothing changed.**
+- The reviewed code is now saved with each history entry. When you click Review,
+  the service worker compares your current code with the last reviewed code for
+  that problem. If they're identical, it **skips the backend call** and re-shows
+  your previous result with a note: *"No changes in your code since the last
+  review…"*. The toolbar popup says the same in its status line.
+- This protects your tokens from accidental double-clicks and "let me re-read
+  that" re-runs. (Any real edit, however small, counts as a change and runs a
+  fresh review.)
+
+**Files touched:** `background.js` (no-change guard + store code), `content.js`
+(resize handles, reset button, note banner, wider default), `popup.js` (status),
+`manifest.json` (version 1.2.0). Backend unchanged.
+
+**Verified:** all JS passes a Node syntax check; no stray invisible characters.
+
+**To get the fixes:** reload the unpacked extension (Extensions → reload).
+
+### Prompt 19 — Constraint-aware edge-case reviews (2026-06-08)
+
+**Problem:** The Edge-Case Executioner was raising faults for scenarios that the
+problem's own Constraints explicitly rule out — e.g. "does not handle an empty
+array" when the constraint says `1 ≤ descriptions.length ≤ 10^4`, or "no root
+found" when the problem guarantees a valid tree. These were noise, not real bugs,
+and wasted the student's time chasing hypothetical impossibilities.
+
+**Root cause:** The Executioner's system prompt told it to look hard at "empty
+inputs, single-element inputs, duplicate values…" with no instruction to first
+check whether those scenarios are actually possible given the stated constraints.
+
+**Fixes — two complementary layers:**
+
+**1. Backend prompt (`socratic_reviewer.py`) — the primary fix.**
+- Added a prominent **CRITICAL RULE** at the top of the Executioner's system
+  prompt: "Read the Constraints first. NEVER raise a fault for any scenario
+  that the stated constraints guarantee cannot occur." Three concrete examples are
+  given (empty array, no root, duplicate child) so the model knows exactly what
+  to skip.
+- The human message now labels the task: *"read the Constraints section carefully
+  before auditing"* and ends with *"faults that can actually occur given the
+  stated constraints"*.
+- The `ExecutionerSchema.issues` field description was tightened to say *"within
+  the stated problem constraints"* — so even the structured-output contract
+  reinforces the rule.
+
+**2. Frontend scraping (`content.js`) — surface the Constraints as a labelled block.**
+- `scrapeDescription()` now walks the description DOM looking for a "Constraints"
+  heading. When found, the following bullet points are extracted and appended as a
+  clearly-labelled block: *"CONSTRAINTS (hard limits — do not raise issues that
+  violate these): …"*. This makes the constraints impossible to miss in the
+  prompt, even if they were buried deep in a long description.
+- The full description text (which already contained the constraints) is still
+  included; the extracted block is additive, not a replacement.
+
+**Files touched:** `src/undoomed/socratic_reviewer.py` (Executioner system
+prompt + schema), `content.js` (constraint extraction in `scrapeDescription()`).
+Extension UI unchanged; backend logic unchanged.
+
+**Verified:** `socratic_reviewer.py` parses cleanly (`ast.parse`); `content.js`
+passes `node --check`.
+
+**To get the backend fix:** redeploy the backend on Render (the prompt change
+only takes effect server-side). Reload the unpacked extension for the improved
+constraint scraping.
+
+### Prompt 20 — Settings button on the panel + remembered model dropdown (2026-06-08)
+
+Two quality-of-life requests: make Settings reachable straight from the on-page
+panel, and stop making the user retype model ids (remembering only the ones that
+actually work).
+
+**1. Settings reachable from the panel.**
+- The panel header gained a **⚙ settings** button, and the panel now has a
+  **footer** showing the active **provider · model** that doubles as a second
+  Settings link. Either takes you to the full Settings page (where the model and
+  API key live). Because a content script can't open the options page directly,
+  the panel asks the service worker (new `UNDOOMED_OPEN_OPTIONS` message →
+  `chrome.runtime.openOptionsPage()`).
+- The footer label stays in sync: change your provider/model in Settings and the
+  panel updates live (via a `chrome.storage.onChanged` listener).
+
+**2. The model field is now a "remembered models" dropdown.**
+- On the Settings page the free-text model box became a **dropdown**. It lists,
+  per provider, every model that has **passed a Test connection** — so you pick a
+  known-good model instead of retyping (and can't fat-finger one that 404s).
+- It always offers **"Default — <model>"** (use the provider's default) and
+  **"+ Add a new model…"** (reveals a text box to type a new id). When a new
+  model passes **Test connection**, it's saved to the list for that provider and
+  selected automatically.
+- Stored under a new key `undoomed_valid_models` = `{ provider: [model, …] }`.
+  Switching providers shows that provider's own remembered models. (Note: this
+  remembers *models*; the provider list itself stays the four the backend
+  supports — adding an arbitrary provider name wouldn't have a working client.)
+- Also fixed a stale label: the provider dropdown showed Gemini's default as
+  `gemini-2.0-flash`; it now matches the real default `gemini-2.5-flash`.
+
+**Files touched:** `content.js` (⚙ button, footer, open-settings message, live
+label), `background.js` (`UNDOOMED_OPEN_OPTIONS` handler), `options.html`
+(model dropdown + add-new input, Gemini label), `options.js` (valid-model
+history, dropdown population, record-on-test), `manifest.json` (version 1.3.0).
+Backend unchanged.
+
+**Verified:** all JS passes a Node syntax check; `manifest.json` is valid JSON
+(now v1.3.0); no stale `modelEl` references remain.
 
 **To get the fixes:** reload the unpacked extension (Extensions → reload). No
 backend redeploy needed for this prompt.

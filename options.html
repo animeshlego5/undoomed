@@ -22,18 +22,20 @@
           <select id="provider" class="field__input">
             <option value="openai">OpenAI &mdash; gpt-4o-mini</option>
             <option value="anthropic">Anthropic (Claude) &mdash; claude-opus-4-8</option>
-            <option value="gemini">Google Gemini &mdash; gemini-2.0-flash</option>
+            <option value="gemini">Google Gemini &mdash; gemini-2.5-flash</option>
             <option value="deepseek">DeepSeek &mdash; deepseek-chat</option>
           </select>
         </label>
 
-        <label class="field" for="model">
+        <div class="field">
           <span class="field__label">
-            Model <span class="field__hint">(optional override — use the API ID, e.g. <code>gemini-2.5-flash-lite</code>)</span>
+            Model
+            <span class="field__hint">(models that passed a Test appear here — pick one, or add a new one)</span>
           </span>
-          <input id="model" class="field__input" type="text" autocomplete="off"
-                 spellcheck="false" placeholder="leave blank for the default" />
-        </label>
+          <select id="model-select" class="field__input"></select>
+          <input id="model-new" class="field__input" type="text" autocomplete="off"
+                 spellcheck="false" placeholder="type a model API id, e.g. gpt-4o" hidden />
+        </div>
 
         <div class="field">
           <label class="field__label" for="api-key">API key</label>

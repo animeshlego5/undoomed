@@ -62,6 +62,12 @@ function historyKey(slug) {
   return "undoomed_history__" + (slug || "unknown");
 }
 
+async function loadHistory(slug) {
+  const key = historyKey(slug);
+  const stored = await chrome.storage.local.get(key);
+  return Array.isArray(stored[key]) ? stored[key] : [];
+}
+
 async function saveHistory(slug, entry) {
   const key = historyKey(slug);
   const stored = await chrome.storage.local.get(key);
@@ -133,6 +139,14 @@ async function sendToTab(tabId, message) {
   }
 }
 
+async function scrapePage(tabId) {
+  try {
+    return (await chrome.tabs.sendMessage(tabId, { type: "UNDOOMED_SCRAPE" })) || {};
+  } catch (e) {
+    return {};
+  }
+}
+
 // ---- the one review flow ----------------------------------------------------
 async function runReview(tabId, url) {
   if (!/^https:\/\/leetcode\.com\/problems\//.test(url || "")) {
@@ -147,9 +161,10 @@ async function runReview(tabId, url) {
   }
 
   const slug = slugFromUrl(url);
-  await sendToTab(tabId, { type: "UNDOOMED_OVERLAY", phase: "loading" });
 
-  // Full code + language straight from Monaco (MAIN world).
+  // Read the code + language FIRST (cheap, no network). We read Monaco's live
+  // model; only if that fails do we scrape the DOM as a fallback. We hold off on
+  // showing "loading" until we know we actually need to call the API.
   let monaco = { code: "", language: "" };
   try {
     const [injection] = await chrome.scripting.executeScript({
@@ -162,21 +177,35 @@ async function runReview(tabId, url) {
     /* DOM fallback below */
   }
 
-  // Description (+ DOM code fallback) from the content script.
-  let scraped = {};
-  try {
-    scraped = (await chrome.tabs.sendMessage(tabId, { type: "UNDOOMED_SCRAPE" })) || {};
-  } catch (e) {
-    /* leave empty */
+  let scraped = null;
+  let current_code = monaco.code && monaco.code.trim() ? monaco.code : "";
+  if (!current_code) {
+    scraped = await scrapePage(tabId);
+    current_code = scraped.current_code || "";
   }
-
-  const current_code =
-    monaco.code && monaco.code.trim() ? monaco.code : scraped.current_code || "";
   if (!current_code.trim()) {
     const msg = "Couldn't read your code from the editor. Write some code and retry.";
     await sendToTab(tabId, { type: "UNDOOMED_OVERLAY", phase: "error", message: msg });
     return { ok: false, error: msg };
   }
+
+  // No-change short-circuit: if the code is identical to the last review for
+  // THIS problem, re-show that result instead of spending an API call/tokens.
+  const history = await loadHistory(slug);
+  const last = history[0];
+  if (last && typeof last.code === "string" && last.code.trim() === current_code.trim()) {
+    await sendToTab(tabId, {
+      type: "UNDOOMED_OVERLAY",
+      phase: "result",
+      entry: last,
+      note: "No changes in your code since the last review — showing your previous result (no API call made).",
+    });
+    return { ok: true, unchanged: true };
+  }
+
+  // Code changed: now show loading and do the real review.
+  await sendToTab(tabId, { type: "UNDOOMED_OVERLAY", phase: "loading" });
+  if (!scraped) scraped = await scrapePage(tabId); // need the description now
 
   const task_description = scraped.task_description || "";
   const language = monaco.language || "";
@@ -235,6 +264,7 @@ async function runReview(tabId, url) {
     loop_count: data.loop_count || 0,
     faults: data.edge_case_faults || [],
     body,
+    code: current_code, // stored so we can detect "no changes" next time
   };
   await saveHistory(slug, entry);
   await sendToTab(tabId, { type: "UNDOOMED_OVERLAY", phase: "result", entry });
@@ -243,6 +273,18 @@ async function runReview(tabId, url) {
 
 // ---- message router ---------------------------------------------------------
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Open the Settings page on behalf of the on-page panel (content scripts
+  // can't call chrome.runtime.openOptionsPage() themselves).
+  if (message && message.type === "UNDOOMED_OPEN_OPTIONS") {
+    try {
+      chrome.runtime.openOptionsPage();
+      sendResponse({ ok: true });
+    } catch (e) {
+      sendResponse({ ok: false, error: String(e) });
+    }
+    return; // synchronous
+  }
+
   if (message && message.type === "UNDOOMED_RUN_REVIEW") {
     (async () => {
       const tabId = message.tabId || (sender.tab && sender.tab.id);

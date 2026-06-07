@@ -19,6 +19,7 @@ const STORAGE = {
   apiKey: "undoomed_api_key",
   serverSecret: "undoomed_server_secret",
   side: "undoomed_overlay_side",
+  validModels: "undoomed_valid_models", // { provider: [model, ...] } — tested OK
 };
 
 // Default model shown as a placeholder hint for each provider.
@@ -31,7 +32,8 @@ const DEFAULT_MODEL = {
 };
 
 const providerEl = document.getElementById("provider");
-const modelEl = document.getElementById("model");
+const modelSelectEl = document.getElementById("model-select");
+const modelNewEl = document.getElementById("model-new");
 const keyEl = document.getElementById("api-key");
 const serverEl = document.getElementById("server-secret");
 const sideEl = document.getElementById("overlay-side");
@@ -45,11 +47,82 @@ function setStatus(text, kind = "") {
   statusEl.className = "status" + (kind ? " status--" + kind : "");
 }
 
-function refreshModelPlaceholder() {
-  modelEl.placeholder = "default: " + (DEFAULT_MODEL[providerEl.value] || "");
+// ---- Valid-model history (per provider) -------------------------------------
+// We remember every model that returned a SUCCESSFUL Test connection, grouped
+// by provider, and offer them in a dropdown so the user never has to retype a
+// known-good model id — and can't accidentally pick one that doesn't work.
+const ADD_NEW = "__add_new__"; // sentinel dropdown value: reveal the text input
+let validModels = {}; // { provider: ["gpt-4o", ...] }
+
+async function loadValidModels() {
+  const saved = await chrome.storage.local.get(STORAGE.validModels);
+  const raw = saved[STORAGE.validModels];
+  validModels = raw && typeof raw === "object" ? raw : {};
+}
+
+function modelsFor(provider) {
+  return Array.isArray(validModels[provider]) ? validModels[provider].slice() : [];
+}
+
+async function addValidModel(provider, model) {
+  if (!model) return;
+  const list = modelsFor(provider);
+  if (!list.includes(model)) {
+    list.push(model);
+    list.sort();
+    validModels[provider] = list;
+    await chrome.storage.local.set({ [STORAGE.validModels]: validModels });
+  }
+}
+
+// Rebuild the model dropdown for a provider; select `selected` ("" = default).
+function populateModelDropdown(provider, selected) {
+  const def = DEFAULT_MODEL[provider] || "";
+  const list = modelsFor(provider);
+  // Keep a previously-saved model visible even if it isn't in the history yet.
+  if (selected && selected !== def && !list.includes(selected)) list.unshift(selected);
+
+  modelSelectEl.innerHTML = "";
+
+  const optDefault = document.createElement("option");
+  optDefault.value = ""; // empty => use the provider default
+  optDefault.textContent = "Default — " + def;
+  modelSelectEl.appendChild(optDefault);
+
+  list.forEach((m) => {
+    if (!m || m === def) return; // the default is already the first option
+    const opt = document.createElement("option");
+    opt.value = m;
+    opt.textContent = m;
+    modelSelectEl.appendChild(opt);
+  });
+
+  const optAdd = document.createElement("option");
+  optAdd.value = ADD_NEW;
+  optAdd.textContent = "+ Add a new model…";
+  modelSelectEl.appendChild(optAdd);
+
+  modelSelectEl.value = selected && selected !== def ? selected : "";
+  toggleNewModelInput();
+}
+
+function toggleNewModelInput() {
+  const adding = modelSelectEl.value === ADD_NEW;
+  modelNewEl.hidden = !adding;
+  if (adding) {
+    modelNewEl.value = "";
+    modelNewEl.focus();
+  }
+}
+
+// The model id the user currently intends to use ("" means provider default).
+function currentModel() {
+  if (modelSelectEl.value === ADD_NEW) return modelNewEl.value.trim();
+  return modelSelectEl.value;
 }
 
 async function loadSettings() {
+  await loadValidModels();
   const saved = await chrome.storage.local.get([
     STORAGE.provider,
     STORAGE.model,
@@ -58,14 +131,15 @@ async function loadSettings() {
     STORAGE.side,
   ]);
   providerEl.value = saved[STORAGE.provider] || "openai";
-  modelEl.value = saved[STORAGE.model] || "";
   keyEl.value = saved[STORAGE.apiKey] || "";
   serverEl.value = saved[STORAGE.serverSecret] || "";
   sideEl.value = saved[STORAGE.side] === "left" ? "left" : "right";
-  refreshModelPlaceholder();
+  populateModelDropdown(providerEl.value, (saved[STORAGE.model] || "").trim());
 }
 
-providerEl.addEventListener("change", refreshModelPlaceholder);
+// Switching provider shows that provider's own remembered models.
+providerEl.addEventListener("change", () => populateModelDropdown(providerEl.value, ""));
+modelSelectEl.addEventListener("change", toggleNewModelInput);
 
 toggleBtn.addEventListener("click", () => {
   const revealing = keyEl.type === "password";
@@ -79,7 +153,7 @@ document.getElementById("settings-form").addEventListener("submit", async (event
   const apiKey = keyEl.value.trim();
   await chrome.storage.local.set({
     [STORAGE.provider]: providerEl.value,
-    [STORAGE.model]: modelEl.value.trim(),
+    [STORAGE.model]: currentModel(),
     [STORAGE.apiKey]: apiKey,
     [STORAGE.serverSecret]: serverEl.value.trim(),
     [STORAGE.side]: sideEl.value === "left" ? "left" : "right",
@@ -119,13 +193,22 @@ testBtn.addEventListener("click", async () => {
         current_code: "print('hello world')",
         thread_id: "undoomed_conntest_" + Date.now(),
         provider: providerEl.value,
-        model: modelEl.value.trim(),
+        model: currentModel(),
         api_key: apiKey,
       }),
     });
 
     if (response.ok) {
-      setStatus(`✓ Connection OK — ${providerEl.value} responded. Don't forget to Save.`, "ok");
+      // Success ⇒ this model works. Remember it for this provider and re-select
+      // it in the dropdown so it's there next time (no retyping).
+      const used = currentModel() || DEFAULT_MODEL[providerEl.value] || "";
+      await addValidModel(providerEl.value, used);
+      populateModelDropdown(providerEl.value, used);
+      setStatus(
+        `✓ Connection OK — ${providerEl.value} responded with “${used}”. ` +
+          "Saved to your model list; don't forget to Save.",
+        "ok"
+      );
       return;
     }
 

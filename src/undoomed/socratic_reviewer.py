@@ -111,9 +111,11 @@ class ExecutionerSchema(BaseModel):
     issues: List[str] = Field(
         default_factory=list,
         description=(
-            "One short, concrete sentence per distinct logic/edge-case fault. "
-            "Describe WHAT is wrong (e.g. 'Does not handle an empty input "
-            "list'), never HOW to fix it. Empty list when has_errors is False."
+            "One short, concrete sentence per distinct logic/edge-case fault "
+            "that can actually occur given the stated problem constraints. "
+            "NEVER include scenarios that the problem's Constraints section "
+            "explicitly rules out. Describe WHAT is wrong, never HOW to fix it. "
+            "Empty list when has_errors is False."
         ),
     )
 
@@ -344,21 +346,35 @@ def edge_case_executioner(state: ReviewState, config=None) -> dict:
             "reviews code purely for CORRECTNESS and EDGE CASES. You do not "
             "care about style, naming, or performance here -- only whether the "
             "code produces correct results for every reasonable input.\n\n"
-            "Scrutinise especially: empty inputs, single-element inputs, "
-            "duplicate values, missing/None values, no-solution-exists cases, "
-            "off-by-one indexing, reusing the same element when it shouldn't, "
-            "and any path that returns nothing (implicit None).\n\n"
+            "CRITICAL RULE — RESPECT PROBLEM CONSTRAINTS:\n"
+            "The task description contains explicit CONSTRAINTS (often under a "
+            "'Constraints:' heading). Read them FIRST. NEVER raise a fault for "
+            "any scenario that those constraints guarantee cannot occur.\n"
+            "Examples:\n"
+            "  - If '1 <= arr.length', do NOT report 'does not handle empty input'.\n"
+            "  - If the problem guarantees a valid tree, do NOT raise 'no root found'.\n"
+            "  - If a node is guaranteed to appear at most once as a child, do NOT "
+            "    raise 'node listed as child multiple times'.\n"
+            "The constraints define the valid input space. Only audit within that "
+            "space. Hypothetical violations of stated constraints are NOT faults.\n\n"
+            "Within the valid input space, scrutinise especially: smallest allowed "
+            "inputs, maximum-size inputs, duplicate values (when allowed), "
+            "no-solution-exists cases, off-by-one indexing, reusing the same "
+            "element when it shouldn't, and any path that returns nothing (implicit None).\n\n"
             "Report only genuine functional faults. If the code is correct for "
-            "all reasonable inputs, set has_errors=False and return no issues."
+            "all inputs that satisfy the stated constraints, set has_errors=False "
+            "and return no issues."
         )
     )
     lang_name, _ = _language_info(state)
     human = HumanMessage(
         content=(
             f"LANGUAGE: {lang_name}\n\n"
-            f"TASK DESCRIPTION:\n{state['task_description']}\n\n"
+            f"TASK DESCRIPTION (read the Constraints section carefully before auditing):\n"
+            f"{state['task_description']}\n\n"
             f"SUBMITTED CODE:\n{state['current_code']}\n\n"
-            f"Audit this {lang_name} code for logic and edge-case faults."
+            f"Audit this {lang_name} code for logic and edge-case faults that can "
+            f"actually occur given the stated constraints."
         )
     )
 

@@ -59,7 +59,9 @@ async function requestReview() {
       tabUrl: tab.url,
     });
 
-    if (res && res.ok) {
+    if (res && res.ok && res.unchanged) {
+      setStatus("No code changes — showing your last review on the page →");
+    } else if (res && res.ok) {
       setStatus("Done — see the Un-doomed panel on the page →");
     } else if (res && res.error) {
       setStatus(res.error, true);

@@ -27,6 +27,16 @@
   // ever ends up in this source file.
   const NBSP = String.fromCharCode(160);
 
+  // Per-provider default model, used only to LABEL the footer when the user
+  // hasn't overridden the model. The authoritative defaults live in the backend
+  // and the Settings page; this is a display convenience.
+  const DEFAULT_MODELS = {
+    openai: "gpt-4o-mini",
+    anthropic: "claude-opus-4-8",
+    gemini: "gemini-2.5-flash",
+    deepseek: "deepseek-chat",
+  };
+
   // -------------------------------------------------------------------------
   // 1. SCRAPING
   // -------------------------------------------------------------------------
@@ -45,15 +55,48 @@
       "div.text-title-large",
       "[data-cy='question-title']",
     ]);
-    const body = firstText([
-      "[data-track-load='description_content']",
-      "div.elfjS",
-      "[data-cy='question-content']",
-      ".question-content__JfgR",
-      ".content__u3I1",
-    ]);
-    if (title && body) return title + "\n\n" + body;
-    return body || title || "";
+    const bodyEl = (
+      document.querySelector("[data-track-load='description_content']") ||
+      document.querySelector("div.elfjS") ||
+      document.querySelector("[data-cy='question-content']") ||
+      document.querySelector(".question-content__JfgR") ||
+      document.querySelector(".content__u3I1")
+    );
+    const body = bodyEl ? bodyEl.innerText.trim() : "";
+
+    // Try to pull the Constraints block out separately so it is always clearly
+    // labelled when we send the prompt to the AI — prevents the model from
+    // raising faults for inputs the constraints explicitly rule out.
+    let constraints = "";
+    if (bodyEl) {
+      // Walk paragraphs/headings looking for one whose text starts with "Constraints"
+      const allBlocks = bodyEl.querySelectorAll("p, ul, ol, li");
+      let capturing = false;
+      const constraintLines = [];
+      allBlocks.forEach((el) => {
+        const t = el.innerText ? el.innerText.trim() : "";
+        if (!capturing && /^constraints/i.test(t)) {
+          capturing = true;
+          return; // heading itself — skip the label, grab what follows
+        }
+        if (capturing) {
+          // Stop if we hit the next major heading
+          if (el.tagName === "P" && /^(follow-up|note|example|hint)/i.test(t)) {
+            capturing = false;
+          } else if (t) {
+            constraintLines.push(t);
+          }
+        }
+      });
+      if (constraintLines.length) {
+        constraints = "\n\nCONSTRAINTS (hard limits — do not raise issues that violate these):\n" +
+          constraintLines.map((l) => "- " + l).join("\n");
+      }
+    }
+
+    const full = body + constraints;
+    if (title && full) return title + "\n\n" + full;
+    return full || title || "";
   }
 
   function scrapeCodeFromDom() {
@@ -103,6 +146,21 @@
       /* ignore */
     }
   }
+  async function loadPanelSize() {
+    try {
+      const s = await chrome.storage.local.get(["undoomed_panel_w", "undoomed_panel_h"]);
+      return { w: s.undoomed_panel_w || null, h: s.undoomed_panel_h || null };
+    } catch (e) {
+      return { w: null, h: null };
+    }
+  }
+  async function savePanelSize(w, h) {
+    try {
+      await chrome.storage.local.set({ undoomed_panel_w: w, undoomed_panel_h: h });
+    } catch (e) {
+      /* ignore */
+    }
+  }
 
   // -------------------------------------------------------------------------
   // 3. OVERLAY (Shadow DOM)
@@ -138,10 +196,11 @@
       display: inline-grid; place-items: center;
     }
 
-    /* Panel: a drawer on the left OR right, below the top bar. */
+    /* Panel: a drawer on the left OR right, below the top bar.
+       width/height are defaults; drag handles set inline px overrides. */
     .panel {
       position: fixed; top: ${TOP_OFFSET}px; height: calc(100vh - ${TOP_OFFSET}px);
-      width: min(420px, 92vw); background: #fff; color: #1c1c28; z-index: 2;
+      width: min(520px, 92vw); background: #fff; color: #1c1c28; z-index: 2;
       display: flex; flex-direction: column; transition: transform .22s ease;
     }
     .panel--right { right: 0; box-shadow: -12px 0 40px rgba(20,20,40,.18); transform: translateX(100%); }
@@ -171,13 +230,47 @@
     .iconbtn:hover { background: #f1f1f5; color: #1c1c28; }
     .iconbtn--x { font-size: 20px; }
 
-    .actions { padding: 12px 14px; border-bottom: 1px solid #ececf1; }
+    .actions { padding: 12px 14px; border-bottom: 1px solid #ececf1; display: flex; gap: 8px; align-items: stretch; }
     .review-btn {
-      appearance: none; border: 0; cursor: pointer; width: 100%; padding: 10px 14px;
+      appearance: none; border: 0; cursor: pointer; flex: 1; padding: 10px 14px;
       background: #4f46e5; color: #fff; font: 600 14px/1 inherit; border-radius: 10px;
     }
     .review-btn:hover { background: #4338ca; }
     .review-btn:disabled { opacity: .6; cursor: progress; }
+    .size-reset {
+      appearance: none; cursor: pointer; flex: 0 0 auto; width: 40px;
+      background: #fff; color: #6b7280; border: 1px solid #ececf1; border-radius: 10px;
+      font-size: 15px;
+    }
+    .size-reset:hover { color: #1c1c28; background: #f6f6fb; }
+
+    /* Footer: a quick link to Settings that also shows the active model. */
+    .pfoot { border-top: 1px solid #ececf1; padding: 6px 8px; flex: 0 0 auto; }
+    .foot-btn {
+      width: 100%; appearance: none; border: 0; background: none; cursor: pointer;
+      display: flex; align-items: center; gap: 8px; padding: 6px 8px;
+      border-radius: 8px; font: inherit; color: #6b7280; text-align: left;
+    }
+    .foot-btn:hover { background: #f1f1f5; color: #1c1c28; }
+    .foot-gear { font-size: 14px; flex: 0 0 auto; }
+    .foot-model { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* "no changes" note banner above the review body */
+    .ud-note {
+      background: #eef2ff; color: #3730a3; border: 1px solid #e0e3f5;
+      border-radius: 8px; padding: 8px 10px; font-size: 12.5px; margin-bottom: 12px;
+    }
+
+    /* drag-to-resize handles */
+    .rsz { position: absolute; z-index: 5; touch-action: none; }
+    .rsz--w { top: 0; bottom: 0; width: 10px; cursor: ew-resize; }
+    .panel--right .rsz--w { left: -3px; }
+    .panel--left .rsz--w { right: -3px; }
+    .rsz--h { left: 0; right: 0; bottom: -3px; height: 10px; cursor: ns-resize; }
+    .rsz--c { width: 16px; height: 16px; bottom: 0; z-index: 6; }
+    .panel--right .rsz--c { left: 0; cursor: nesw-resize; }
+    .panel--left .rsz--c { right: 0; cursor: nwse-resize; }
+    .rsz--w:hover, .rsz--h:hover { background: rgba(79,70,229,.14); }
 
     .tabs { display: flex; gap: 4px; padding: 6px 12px 0; border-bottom: 1px solid #ececf1; }
     .tab {
@@ -252,12 +345,14 @@
       "      </div>" +
       '      <div class="phead__r">' +
       '        <span class="pill pill--neutral" id="ud-pill" hidden></span>' +
+      '        <button class="iconbtn" id="ud-settings" title="Settings — provider, model, API key">&#9881;</button>' +
       '        <button class="iconbtn" id="ud-flip" title="Move to the other side">&#8646;</button>' +
       '        <button class="iconbtn iconbtn--x" id="ud-close" title="Close">&times;</button>' +
       "      </div>" +
       "    </div>" +
       '    <div class="actions">' +
       '      <button class="review-btn" id="ud-review" type="button">Request Socratic Review</button>' +
+      '      <button class="size-reset" id="ud-reset" type="button" title="Reset panel size (or double-click an edge)">&#8690;</button>' +
       "    </div>" +
       '    <nav class="tabs">' +
       '      <button class="tab tab--active" id="ud-tab-current" data-tab="current">Current</button>' +
@@ -267,6 +362,15 @@
       '      <div class="md" id="ud-current"><p class="empty">Click "Request Socratic Review" to get hints here.</p></div>' +
       '      <div id="ud-history" hidden></div>' +
       "    </section>" +
+      '    <div class="pfoot">' +
+      '      <button class="foot-btn" id="ud-foot-settings" type="button" title="Open settings — provider, model, API key">' +
+      '        <span class="foot-gear">&#9881;</span>' +
+      '        <span class="foot-model" id="ud-foot-model">Settings</span>' +
+      "      </button>" +
+      "    </div>" +
+      '    <div class="rsz rsz--w" id="ud-rsz-w" title="Drag to resize width"></div>' +
+      '    <div class="rsz rsz--h" id="ud-rsz-h" title="Drag to resize height"></div>' +
+      '    <div class="rsz rsz--c" id="ud-rsz-c" title="Drag to resize"></div>' +
       "  </aside>" +
       "</div>";
 
@@ -284,6 +388,10 @@
       tabCurrent: root.getElementById("ud-tab-current"),
       tabHistory: root.getElementById("ud-tab-history"),
       reviewBtn: root.getElementById("ud-review"),
+      footModel: root.getElementById("ud-foot-model"),
+      rszW: root.getElementById("ud-rsz-w"),
+      rszH: root.getElementById("ud-rsz-h"),
+      rszC: root.getElementById("ud-rsz-c"),
     };
 
     root.getElementById("ud-toggle").addEventListener("click", () => togglePanel());
@@ -291,8 +399,19 @@
     els.reviewBtn.addEventListener("click", () => triggerReview());
     root.getElementById("ud-close").addEventListener("click", () => openPanel(false));
     root.getElementById("ud-flip").addEventListener("click", () => flipSide());
+    root.getElementById("ud-reset").addEventListener("click", () => resetPanelSize());
+    root.getElementById("ud-settings").addEventListener("click", () => openSettings());
+    root.getElementById("ud-foot-settings").addEventListener("click", () => openSettings());
     els.tabCurrent.addEventListener("click", () => switchTab("current"));
     els.tabHistory.addEventListener("click", () => switchTab("history"));
+
+    // Drag-to-resize: width (inner edge), height (bottom), corner (both).
+    els.rszW.addEventListener("pointerdown", (e) => startResize(e, "w"));
+    els.rszH.addEventListener("pointerdown", (e) => startResize(e, "h"));
+    els.rszC.addEventListener("pointerdown", (e) => startResize(e, "c"));
+    [els.rszW, els.rszH, els.rszC].forEach((h) =>
+      h.addEventListener("dblclick", () => resetPanelSize())
+    );
 
     applySide();
     return els;
@@ -317,6 +436,74 @@
     saveSide(side);
   }
 
+  // Apply a stored width/height (clamped to the current viewport).
+  function applySize(w, h) {
+    ensureOverlay();
+    const maxW = Math.round(window.innerWidth * 0.96);
+    const maxH = window.innerHeight - TOP_OFFSET;
+    if (w) els.panel.style.width = Math.min(w, maxW) + "px";
+    if (h) els.panel.style.height = Math.min(h, maxH) + "px";
+  }
+
+  function resetPanelSize() {
+    ensureOverlay();
+    els.panel.style.width = "";
+    els.panel.style.height = "";
+    chrome.storage.local
+      .remove(["undoomed_panel_w", "undoomed_panel_h"])
+      .catch(() => {});
+  }
+
+  // Drag a handle: mode "w" (width), "h" (height), or "c" (corner = both).
+  function startResize(e, mode) {
+    ensureOverlay();
+    e.preventDefault();
+    const handle = e.currentTarget;
+    const rect = els.panel.getBoundingClientRect();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startW = rect.width;
+    const startH = rect.height;
+    const MIN_W = 320;
+    const MIN_H = 260;
+    const maxW = Math.round(window.innerWidth * 0.96);
+    const maxH = window.innerHeight - TOP_OFFSET;
+
+    try {
+      handle.setPointerCapture(e.pointerId);
+    } catch (_) {
+      /* capture is best-effort */
+    }
+    document.body.style.userSelect = "none";
+
+    function onMove(ev) {
+      if (mode === "w" || mode === "c") {
+        // Width grows when dragging the INNER edge away from the pinned side.
+        const dw = side === "right" ? startX - ev.clientX : ev.clientX - startX;
+        els.panel.style.width = Math.max(MIN_W, Math.min(maxW, Math.round(startW + dw))) + "px";
+      }
+      if (mode === "h" || mode === "c") {
+        els.panel.style.height =
+          Math.max(MIN_H, Math.min(maxH, Math.round(startH + (ev.clientY - startY)))) + "px";
+      }
+    }
+    function onUp() {
+      handle.removeEventListener("pointermove", onMove);
+      handle.removeEventListener("pointerup", onUp);
+      try {
+        handle.releasePointerCapture(e.pointerId);
+      } catch (_) {
+        /* ignore */
+      }
+      document.body.style.userSelect = "";
+      const w = parseInt(els.panel.style.width, 10) || startW;
+      const h = parseInt(els.panel.style.height, 10) || startH;
+      savePanelSize(w, h);
+    }
+    handle.addEventListener("pointermove", onMove);
+    handle.addEventListener("pointerup", onUp);
+  }
+
   function openPanel(open) {
     ensureOverlay();
     els.panel.classList.toggle("panel--open", open);
@@ -332,6 +519,41 @@
     els.tabHistory.classList.toggle("tab--active", !isCurrent);
     els.current.hidden = !isCurrent;
     els.history.hidden = isCurrent;
+  }
+
+  // Open the extension's Settings page. A content script can't call
+  // chrome.runtime.openOptionsPage() directly, so we ask the service worker.
+  function openSettings() {
+    try {
+      chrome.runtime
+        .sendMessage({ type: "UNDOOMED_OPEN_OPTIONS" })
+        .catch(() => {});
+    } catch (e) {
+      /* extension context may be reloading — ignore */
+    }
+  }
+
+  // Footer label: show which provider + model the next review will use, so the
+  // user can see (and change) their setup without leaving the page.
+  async function refreshSettingsLabel() {
+    ensureOverlay();
+    try {
+      const s = await chrome.storage.local.get([
+        "undoomed_provider",
+        "undoomed_model",
+      ]);
+      const provider = s.undoomed_provider || "openai";
+      const model =
+        s.undoomed_model && s.undoomed_model.trim()
+          ? s.undoomed_model.trim()
+          : (DEFAULT_MODELS[provider] || "default");
+      els.footModel.textContent = provider + "  " + String.fromCharCode(183) + "  " + model;
+      els.footModel.title =
+        "Provider: " + provider + " " + String.fromCharCode(183) + " Model: " + model +
+        " — click to change in Settings";
+    } catch (e) {
+      els.footModel.textContent = "Settings";
+    }
   }
 
   function renderMarkdown(target, text) {
@@ -387,7 +609,7 @@
     openPanel(true);
   }
 
-  function renderEntry(entry) {
+  function renderEntry(entry, note) {
     ensureOverlay();
     setBusy(false);
     const verdict = pillFor(entry.status);
@@ -404,6 +626,14 @@
     }
     md += entry.body || "";
     renderMarkdown(els.current, md);
+
+    // Optional banner (e.g. "no changes since last review"), rendered as text.
+    if (note) {
+      const banner = document.createElement("div");
+      banner.className = "ud-note";
+      banner.textContent = note;
+      els.current.insertBefore(banner, els.current.firstChild);
+    }
   }
 
   async function refreshHistory(slug) {
@@ -484,7 +714,7 @@
       if (message.phase === "loading") {
         showLoading();
       } else if (message.phase === "result" && message.entry) {
-        renderEntry(message.entry);
+        renderEntry(message.entry, message.note);
         switchTab("current");
         openPanel(true);
         refreshHistory(currentSlug());
@@ -495,12 +725,17 @@
     }
   });
 
-  // Reflect a position change made on the Settings page without a reload.
+  // Reflect changes made on the Settings page without a reload.
   try {
     chrome.storage.onChanged.addListener((changes, area) => {
-      if (area === "local" && changes.undoomed_overlay_side) {
+      if (area !== "local") return;
+      if (changes.undoomed_overlay_side) {
         side = changes.undoomed_overlay_side.newValue === "left" ? "left" : "right";
         applySide();
+      }
+      // Keep the footer's provider/model label in sync with Settings.
+      if (changes.undoomed_provider || changes.undoomed_model) {
+        refreshSettingsLabel();
       }
     });
   } catch (e) {
@@ -514,6 +749,9 @@
     side = await loadSide();
     ensureOverlay();
     applySide();
+    const size = await loadPanelSize();
+    applySize(size.w, size.h);
+    refreshSettingsLabel();
     const slug = currentSlug();
     const list = await refreshHistory(slug);
     if (list.length) renderEntry(list[0]); // preload latest (no API call)
