@@ -120,11 +120,13 @@ undoomed/
 ├─ undoomed_state.db      # (created on first run) the memory file (SQLite)
 │
 ├─ manifest.json          # Browser extension ID card + permissions (Manifest V3)
-├─ content.js             # Reads the page + draws the on-page results OVERLAY
-├─ md.js                  # Safe Markdown→HTML renderer (shared by popup + overlay)
+├─ background.js          # Service worker: the shared review engine (read code,
+│                         #   fetch backend, save history, drive the overlay)
+├─ content.js             # On-page controls + the results OVERLAY (Shadow DOM)
+├─ md.js                  # Safe Markdown→HTML renderer (shared by overlay)
 ├─ config.js              # SHARED client config: the backend URL (one place to edit)
-├─ popup.html / .css / .js     # The popup panel (scrape → send → show)
-├─ options.html / .css / .js   # Settings page (provider + key + overlay + Test)
+├─ popup.html / .css / .js     # Toolbar popup: a thin trigger for a review
+├─ options.html / .css / .js   # Settings page (provider + key + panel side + Test)
 │
 ├─ agent.md               # Drop-in AI-assistant rules (Claude Code / Cursor)
 ├─ index.html             # The marketing landing page (Tailwind via CDN)

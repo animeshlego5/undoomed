@@ -25,16 +25,13 @@
       <!-- Live status / error line -->
       <p id="status" class="status" role="status" aria-live="polite"></p>
 
-      <!-- Result card: hidden until we have something to show -->
-      <section id="result" class="result" hidden>
-        <div class="result__head">
-          <span id="result-label" class="result__label">Socratic Hints</span>
-          <span id="status-pill" class="pill"></span>
-        </div>
-        <div id="result-body" class="result__body md"></div>
-      </section>
+      <!-- Where results appear -->
+      <p class="hint">
+        Results open in a panel on the page. Tip: you can also start a review
+        with the floating <strong>Review</strong> button there.
+      </p>
 
-      <!-- Footer: settings link + the persistent session id -->
+      <!-- Footer: settings link + the current problem -->
       <footer class="foot">
         <button id="open-settings" class="foot__link" type="button">
           &#9881; Settings
@@ -44,7 +41,6 @@
     </main>
 
     <script src="config.js"></script>
-    <script src="md.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

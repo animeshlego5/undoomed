@@ -10,6 +10,9 @@
     "https://*.onrender.com/*",
     "https://*.up.railway.app/*"
   ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html",
     "default_title": "Un-doomed Socratic Review"

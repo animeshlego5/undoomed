@@ -18,7 +18,7 @@ const STORAGE = {
   model: "undoomed_model",
   apiKey: "undoomed_api_key",
   serverSecret: "undoomed_server_secret",
-  overlay: "undoomed_overlay_enabled",
+  side: "undoomed_overlay_side",
 };
 
 // Default model shown as a placeholder hint for each provider.
@@ -34,7 +34,7 @@ const providerEl = document.getElementById("provider");
 const modelEl = document.getElementById("model");
 const keyEl = document.getElementById("api-key");
 const serverEl = document.getElementById("server-secret");
-const overlayEl = document.getElementById("overlay-enabled");
+const sideEl = document.getElementById("overlay-side");
 const statusEl = document.getElementById("status");
 const toggleBtn = document.getElementById("toggle-key");
 const testBtn = document.getElementById("test-btn");
@@ -55,14 +55,13 @@ async function loadSettings() {
     STORAGE.model,
     STORAGE.apiKey,
     STORAGE.serverSecret,
-    STORAGE.overlay,
+    STORAGE.side,
   ]);
   providerEl.value = saved[STORAGE.provider] || "openai";
   modelEl.value = saved[STORAGE.model] || "";
   keyEl.value = saved[STORAGE.apiKey] || "";
   serverEl.value = saved[STORAGE.serverSecret] || "";
-  // Default ON: only an explicit `false` disables the overlay.
-  overlayEl.checked = saved[STORAGE.overlay] !== false;
+  sideEl.value = saved[STORAGE.side] === "left" ? "left" : "right";
   refreshModelPlaceholder();
 }
 
@@ -83,7 +82,7 @@ document.getElementById("settings-form").addEventListener("submit", async (event
     [STORAGE.model]: modelEl.value.trim(),
     [STORAGE.apiKey]: apiKey,
     [STORAGE.serverSecret]: serverEl.value.trim(),
-    [STORAGE.overlay]: overlayEl.checked,
+    [STORAGE.side]: sideEl.value === "left" ? "left" : "right",
   });
 
   if (apiKey) {

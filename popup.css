@@ -237,4 +237,19 @@ body {
   font-size: 10.5px;
   color: #b6b8c2;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Helper text under the button */
+.hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.hint strong {
+  color: var(--ink);
+  font-weight: 600;
 }
