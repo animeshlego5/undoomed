@@ -890,3 +890,29 @@ working.)
   (today it's an editable local install).
 - A real VS Code extension (the last "coming soon" client).
 - Producing the actual `undoomed-extension.zip` artifact for the download button.
+
+---
+
+## Change Log
+
+### Prompt 15 — Point extension & CLI at the live Render backend (2026-06-07)
+
+**What changed:**
+
+- **`config.js`** — swapped the single-line URL from `http://127.0.0.1:8000` to
+  `https://undoomed.onrender.com`. This is the only change needed to make the
+  extension talk to the live server; `popup.js` and `options.js` both read this
+  file automatically.
+
+**Why this is all you need to do for the extension:**
+`config.js` was designed as the "single swap point". `manifest.json` already
+lists `*.onrender.com` in `host_permissions`, so the browser won't block the
+request — no manifest change needed.
+
+**Next steps (one-time, if not done already):**
+1. Reload the unpacked extension in Edge/Chrome (Extensions → reload icon) so
+   the new `config.js` takes effect.
+2. If you set `UNDOOMED_SERVER_SECRET` on Render, paste the same value into
+   the extension's Settings → **Server password** field.
+3. CLI users: `export UNDOOMED_API_URL=https://undoomed.onrender.com` (or set
+   it permanently in the shell profile) and re-run `undoom check` setup.

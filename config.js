@@ -10,7 +10,7 @@
 //  │  Local development : http://127.0.0.1:8000                              │
 //  │  Production example: https://undoomed-backend.onrender.com              │
 //  └───────────────────────────────────────────────────────────────────────┘
-window.UNDOOMED_API_BASE_URL = "http://127.0.0.1:8000";
+window.UNDOOMED_API_BASE_URL = "https://undoomed.onrender.com";
 //
 // IMPORTANT: whatever origin you point this at must ALSO be listed in
 // "host_permissions" in manifest.json, or the browser will block the request.
