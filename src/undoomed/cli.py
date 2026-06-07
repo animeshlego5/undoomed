@@ -55,7 +55,7 @@ PROVIDERS = ["openai", "anthropic", "gemini", "deepseek"]
 DEFAULT_MODELS = {
     "openai": "gpt-4o-mini",
     "anthropic": "claude-opus-4-8",
-    "gemini": "gemini-2.0-flash",
+    "gemini": "gemini-2.5-flash",
     "deepseek": "deepseek-chat",
 }
 

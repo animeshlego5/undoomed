@@ -172,6 +172,25 @@ body {
   color: var(--accent-press);
 }
 
+/* Checkbox row */
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+}
+.check input[type="checkbox"] {
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.check__text {
+  font-size: 13px;
+  font-weight: 600;
+}
+
 /* Status line */
 .status {
   margin: 0;

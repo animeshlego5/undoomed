@@ -120,10 +120,11 @@ undoomed/
 ├─ undoomed_state.db      # (created on first run) the memory file (SQLite)
 │
 ├─ manifest.json          # Browser extension ID card + permissions (Manifest V3)
-├─ content.js             # Reads the problem + code from the LeetCode page
+├─ content.js             # Reads the page + draws the on-page results OVERLAY
+├─ md.js                  # Safe Markdown→HTML renderer (shared by popup + overlay)
 ├─ config.js              # SHARED client config: the backend URL (one place to edit)
 ├─ popup.html / .css / .js     # The popup panel (scrape → send → show)
-├─ options.html / .css / .js   # Settings page (provider + key + Test connection)
+├─ options.html / .css / .js   # Settings page (provider + key + overlay + Test)
 │
 ├─ agent.md               # Drop-in AI-assistant rules (Claude Code / Cursor)
 ├─ index.html             # The marketing landing page (Tailwind via CDN)
@@ -284,7 +285,9 @@ This script runs *inside* the LeetCode page and reads two things:
    in case that ever fails. Belt and suspenders.
 
 `content.js` waits for a message (`UNDOOMED_SCRAPE`) from the popup and replies
-with `{ task_description, current_code }`.
+with `{ task_description, current_code }`. Since Prompt 16 it does much more —
+it also draws the **on-page results overlay** and manages **per-problem
+history** (see §6.6).
 
 ### 6.4 `popup.html` + `popup.css` — the panel
 
@@ -297,32 +300,63 @@ with `{ task_description, current_code }`.
   with a little colored pill saying "Needs revision" or "Approved,"
 - a footer showing the session id.
 
+Since Prompt 16 the results normally appear in the **on-page overlay** (§6.6);
+the popup's own card is the fallback when the overlay is turned off. Either way
+the text is now rendered from Markdown into clean headings, lists, and code (via
+`md.js`) instead of being shown raw.
+
 `popup.css` is the *looks*. It follows the Un-doomed brand: a calm near-white
 background, a single restrained indigo accent, soft rounded corners, generous
-spacing, and no clutter. The hints area uses the normal reading font (not a
-code font) because the hints are sentences, not code.
+spacing, and no clutter.
 
 ### 6.5 `popup.js` — the logic that ties it together
 
 When the user clicks the button, `popup.js`:
 
-1. **Finds or creates a `thread_id`.** On the very first use it generates a
-   unique id (e.g. `student_3f2a…`) and saves it with `chrome.storage.local`.
-   Every later visit reuses that same id, which is how the backend recognizes a
-   returning student and keeps their attempt count.
+1. **Builds a per-problem `thread_id`.** A unique per-browser id is created once
+   and saved with `chrome.storage.local`; the actual thread id is that id plus
+   the problem's slug (`<your-id>__<slug>`). So the backend keeps a *separate*
+   attempt count and memory for each problem (since Prompt 16 — previously one
+   counter was shared across all problems).
 2. **Checks** that the active tab really is a LeetCode problem page.
-3. **Reads the full code** by running the tiny reader in the page's main world
-   (the Monaco trick from §6.3).
+3. **Reads the full code *and the selected language*** by running the tiny reader
+   in the page's main world (the Monaco trick from §6.3). The language is
+   Monaco's own id, e.g. `java`/`python`/`cpp`.
 4. **Asks `content.js`** for the problem description (and a fallback copy of the
    code).
-5. **Sends** `{ task_description, current_code, thread_id }` as a POST request to
-   `http://127.0.0.1:8000/api/review`.
-6. **Shows the reply.** If `status` is `approved`, it displays the **Style
-   Review**; otherwise it displays the **Socratic Hints**. For safety, the text
-   is inserted as plain text (never as HTML), so nothing in the response can
-   break or hijack the page.
+5. **Sends** `{ task_description, current_code, language, thread_id, … }` as a
+   POST request to the backend.
+6. **Shows the reply.** If `status` is `approved`, it's the **Style Review**;
+   otherwise the **Socratic Hints**. The result is handed to the on-page overlay
+   (§6.6) and saved to history; if the overlay is off or unreachable, it renders
+   in the popup card instead. All output is escaped before any Markdown
+   formatting is applied, so a response can never inject markup.
 7. **Handles problems gracefully** — e.g. if the backend isn't running, it shows
    a clear "Is the server running?" message instead of failing silently.
+
+### 6.6 The on-page overlay + history (`content.js`, `md.js`)
+
+From Prompt 16, results appear in a roomy panel drawn directly on the LeetCode
+page rather than only in the cramped popup:
+
+- **Where it lives:** `content.js` injects the panel into a **Shadow DOM** — an
+  isolated mini-document — so LeetCode's CSS can't distort it and its CSS can't
+  affect the page. A small floating **"⏻ Un-doomed"** button (bottom-right)
+  opens and closes it.
+- **What it shows:** a **Current** tab with the latest review (rendered Markdown:
+  headings, lists, `code`, and code blocks) plus a status pill and a meta line
+  (language · attempt # · time), and a **History** tab.
+- **History / no wasted tokens:** every review is cached in
+  `chrome.storage.local` under a key unique to that problem. The History tab
+  lists past reviews; clicking one re-opens it **instantly with no API call**.
+  This persists across closing the popup *and* reloading the page (the launcher
+  even shows a badge with how many saved reviews exist), so you never have to
+  re-run a review — and re-spend tokens — just to re-read an answer.
+- **The toggle:** Settings has **"Show results as an on-page overlay"** (default
+  on). Turn it off to use the in-popup card instead.
+- **`md.js`:** a tiny, dependency-free, safe Markdown→HTML renderer shared by the
+  popup and the overlay. It escapes all HTML first and then adds only a fixed,
+  known set of tags, so model output cannot inject scripts or arbitrary markup.
 
 ---
 
@@ -645,7 +679,7 @@ OPENAI_API_KEY=sk-...   # the key for whichever provider you chose
 | ------------ | ------------------------------- | -------------------- | ------------------------------------- |
 | `openai`     | `OPENAI_API_KEY`                | `gpt-4o-mini`        | (already installed)                   |
 | `anthropic`  | `ANTHROPIC_API_KEY`             | `claude-opus-4-8`    | `pip install langchain-anthropic`     |
-| `gemini`     | `GOOGLE_API_KEY`                | `gemini-2.0-flash`   | `pip install langchain-google-genai`  |
+| `gemini`     | `GOOGLE_API_KEY`                | `gemini-2.5-flash`   | `pip install langchain-google-genai`  |
 | `deepseek`   | `DEEPSEEK_API_KEY`              | `deepseek-chat`      | `pip install langchain-deepseek`      |
 
 You only need the `pip install` for the provider you actually use. If it's
@@ -884,7 +918,10 @@ working.)
 ## 16. What's next (ideas, not yet built)
 
 - Optional icons for the extension toolbar.
-- A short "history" view in the popup showing previous attempts.
+- Triggering a review from a button *inside* the overlay (today the toolbar
+  popup is what starts a review; the overlay shows + remembers the results).
+- Proper LaTeX/maths rendering in the overlay (today `$O(log n)$` is shown in a
+  clean monospace style rather than typeset).
 - Support for more coding sites beyond LeetCode.
 - Publishing `undoomed` to PyPI so `pip install undoomed` works for everyone
   (today it's an editable local install).
@@ -923,3 +960,57 @@ request — no manifest change needed.
    the extension's Settings → **Server password** field.
 3. Local dev: to point the CLI at your local server, run:
    `export UNDOOMED_API_URL=http://127.0.0.1:8000`
+
+### Prompt 16 — Language-aware review + on-page overlay + per-problem history (2026-06-07)
+
+Three problems surfaced from real use (a Java submission was reviewed as if it
+were Python; the result was cramped and hard to read; and closing the popup lost
+the answer, forcing a costly re-submit). All three are now fixed.
+
+**1. Language-aware review (the big bug).**
+The style reviewer used to be hard-wired to "PEP 8 / idiomatic Python", so it
+ignored the language you actually picked and even rewrote your Java as Python.
+Now:
+- The extension reads the **real language** from the editor (Monaco's own
+  language id, e.g. `java`, `cpp`, `python`) and sends it with every request.
+- The backend carries a new `language` field through the whole review and tells
+  **all three reviewers** which language they're looking at. The Clean-Code
+  Critic now reviews against the *correct* style guide per language (PEP 8 for
+  Python, the Google Java Style Guide for Java, the C++ Core Guidelines for C++,
+  and so on), and is explicitly told never to assume or rewrite the code in
+  another language. Unknown languages get a sensible generic style review.
+
+**2. A readable, roomy on-page overlay.**
+The old popup printed the model's raw Markdown, so you saw literal `###`, `**`,
+and `$O(log n)$`. Two changes fix readability:
+- **`md.js`** — a tiny, dependency-free, *safe* Markdown→HTML renderer (it
+  escapes all HTML first, then adds only a fixed set of tags, so model output
+  can't inject anything). Shared by both the popup and the overlay.
+- **`content.js`** now draws an **on-page overlay** (a right-side drawer in an
+  isolated Shadow DOM, so LeetCode's styles can't interfere). It's wide,
+  scrollable, and renders the review as clean headings/lists/code. There's a
+  small floating **"⏻ Un-doomed"** launcher to open/close it. You can switch
+  this off in Settings (**"Show results as an on-page overlay"**) to fall back to
+  the in-popup card, which now also renders Markdown.
+
+**3. Per-problem history (no more re-submitting to see your last answer).**
+- Every review is saved in the browser (`chrome.storage.local`) under a key
+  unique to that problem. The overlay has a **History** tab listing past reviews
+  for the current problem; clicking one re-opens it instantly — **no API call,
+  no tokens spent**. Reloading the page keeps the history, and the launcher shows
+  a small badge with how many saved reviews exist.
+- The backend memory is now **per problem** too: the `thread_id` is
+  `<your-id>__<problem-slug>`, so `loop_count` and the "escalate to a direct
+  answer after 3 tries" logic track each problem separately (previously one
+  global counter was shared across every problem).
+
+**Files touched:** `socratic_reviewer.py`, `server.py` (backend `language`);
+`md.js` (new), `content.js`, `popup.js`, `popup.html`, `popup.css`,
+`options.html`, `options.js`, `options.css`, `manifest.json` (extension).
+
+**Verified:** Python byte-compiles; the offline (`fake`) 2-turn demo and the
+full FastAPI smoke test both pass (`loop_count` 1→2, persisted to SQLite); all
+JS files pass a Node syntax check.
+
+**To get the fixes:** reload the unpacked extension (Extensions → reload), and
+redeploy the backend on Render so the language-aware reviewer is live.

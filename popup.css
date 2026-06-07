@@ -140,18 +140,78 @@ body {
   background: #ecfdf5;
   color: var(--ok);
 }
-/* Hints are prose, not code — keep the monospace `pre` readable by inheriting
-   the UI font while preserving the author's line breaks. */
+/* The result body renders Markdown (via md.js) into clean HTML. */
 .result__body {
   margin: 0;
   padding: 12px;
-  max-height: 320px;
+  max-height: 340px;
   overflow: auto;
-  white-space: pre-wrap;
   word-break: break-word;
-  font-family: inherit;
   font-size: 13px;
   color: var(--ink);
+}
+
+/* ---- Rendered markdown (shared look with the on-page overlay) -------------- */
+.md .ud-h {
+  margin: 12px 0 5px;
+  line-height: 1.3;
+}
+.md h1.ud-h {
+  font-size: 16px;
+}
+.md h2.ud-h {
+  font-size: 15px;
+}
+.md h3.ud-h,
+.md h4.ud-h,
+.md h5.ud-h,
+.md h6.ud-h {
+  font-size: 13.5px;
+}
+.md .ud-p {
+  margin: 7px 0;
+}
+.md .ud-list {
+  margin: 7px 0;
+  padding-left: 20px;
+}
+.md .ud-list li {
+  margin: 3px 0;
+}
+.md .ud-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  background: #f1f1f5;
+  padding: 1px 5px;
+  border-radius: 5px;
+}
+.md .ud-pre {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 9px;
+  padding: 10px 12px;
+  overflow: auto;
+  margin: 8px 0;
+}
+.md .ud-pre code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  background: none;
+  padding: 0;
+}
+.md .ud-hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 12px 0;
+}
+.md a {
+  color: var(--accent);
+}
+.md strong {
+  font-weight: 650;
+}
+.md :first-child {
+  margin-top: 0;
 }
 
 /* ---- Footer ---------------------------------------------------------------- */

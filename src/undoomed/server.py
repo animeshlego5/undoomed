@@ -116,6 +116,14 @@ class ReviewRequest(BaseModel):
     current_code: str = Field(
         ..., description="The student's latest code submission."
     )
+    language: str | None = Field(
+        default=None,
+        description=(
+            "Programming language of the submission (e.g. 'java', 'python'). "
+            "Detected by the client from the editor; drives a language-correct "
+            "style review. Omit to fall back to a generic style review."
+        ),
+    )
     thread_id: str = Field(
         ...,
         description=(
@@ -207,6 +215,7 @@ def review(
     inputs = {
         "task_description": req.task_description,
         "current_code": req.current_code,
+        "language": req.language or "",
     }
 
     try:

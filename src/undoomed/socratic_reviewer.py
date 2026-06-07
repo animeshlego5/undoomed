@@ -10,7 +10,8 @@ This module implements the multi-agent review workflow that powers the
     2. If logic is broken, it coaches the student with **Socratic questions
        only** -- never handing over runnable code  (the "Tutor").
     3. Once the logic is provably clean, it reviews *style*: Big-O complexity
-       and PEP-8 compliance  (the "Critic").
+       and the idiomatic conventions of the submission's own language  (the
+       "Critic" -- e.g. PEP 8 for Python, the Google Java Style Guide for Java).
 
 The whole thing is a LangGraph `StateGraph`. State is persisted across
 independent client requests via a `MemorySaver` checkpointer, keyed by a
@@ -67,6 +68,11 @@ class ReviewState(TypedDict):
 
     # The latest code blob the client submitted this turn.
     current_code: str
+
+    # The programming language of the submission (e.g. "java", "python",
+    # "cpp"). Detected by the client from the editor. Drives language-correct
+    # style review (so a Java submission isn't critiqued against Python's PEP-8).
+    language: str
 
     # Logic / edge-case problems found by the Executioner. Empty list == clean.
     edge_case_faults: List[str]
@@ -128,7 +134,7 @@ class ExecutionerSchema(BaseModel):
 _DEFAULT_MODELS = {
     "openai": "gpt-4o-mini",
     "anthropic": "claude-opus-4-8",  # Anthropic's most capable model
-    "gemini": "gemini-2.0-flash",
+    "gemini": "gemini-2.5-flash",
     "deepseek": "deepseek-chat",
 }
 
@@ -279,6 +285,49 @@ def _llm_from_config(config) -> object:
 # 3. AGENT NODES
 # ===========================================================================
 
+# Map a raw editor language id (Monaco's getLanguageId(), or a LeetCode label)
+# to a clean human name + the idiomatic style guide to review against. Unknown
+# languages fall back to a generic "idiomatic style" review.
+_LANGUAGE_STYLE = {
+    "python": ("Python", "PEP 8"),
+    "java": ("Java", "the Google Java Style Guide"),
+    "javascript": ("JavaScript", "the Airbnb / StandardJS conventions"),
+    "typescript": ("TypeScript", "idiomatic TypeScript conventions"),
+    "cpp": ("C++", "the C++ Core Guidelines"),
+    "c": ("C", "common C style conventions"),
+    "csharp": ("C#", "the Microsoft C# conventions"),
+    "go": ("Go", "gofmt / Effective Go conventions"),
+    "rust": ("Rust", "the official Rust style (rustfmt) conventions"),
+    "ruby": ("Ruby", "the Ruby Style Guide"),
+    "kotlin": ("Kotlin", "the official Kotlin coding conventions"),
+    "swift": ("Swift", "the Swift API Design Guidelines"),
+    "php": ("PHP", "the PSR-12 conventions"),
+    "scala": ("Scala", "the Scala Style Guide"),
+}
+
+
+def _language_info(state: ReviewState) -> tuple[str, str]:
+    """Return (clean language name, style-guide name) for the submission.
+
+    Normalises common aliases. Falls back to a generic, language-agnostic
+    style review when the language is unknown or wasn't supplied.
+    """
+    raw = (state.get("language") or "").strip().lower()
+    aliases = {
+        "c++": "cpp", "cplusplus": "cpp", "py": "python", "py3": "python",
+        "python3": "python", "js": "javascript", "node": "javascript",
+        "ts": "typescript", "cs": "csharp", "c#": "csharp", "golang": "go",
+        "kt": "kotlin", "rb": "ruby",
+    }
+    key = aliases.get(raw, raw)
+    if key in _LANGUAGE_STYLE:
+        return _LANGUAGE_STYLE[key]
+    if raw:
+        # Unknown but named language: review against its own idioms generically.
+        return (raw, f"idiomatic {raw} conventions")
+    return ("the submitted language", "its idiomatic style conventions")
+
+
 def edge_case_executioner(state: ReviewState, config=None) -> dict:
     """Node 1 -- the merciless logic auditor.
 
@@ -303,11 +352,13 @@ def edge_case_executioner(state: ReviewState, config=None) -> dict:
             "all reasonable inputs, set has_errors=False and return no issues."
         )
     )
+    lang_name, _ = _language_info(state)
     human = HumanMessage(
         content=(
+            f"LANGUAGE: {lang_name}\n\n"
             f"TASK DESCRIPTION:\n{state['task_description']}\n\n"
             f"SUBMITTED CODE:\n{state['current_code']}\n\n"
-            "Audit this code for logic and edge-case faults."
+            f"Audit this {lang_name} code for logic and edge-case faults."
         )
     )
 
@@ -364,10 +415,12 @@ def socratic_tutor(state: ReviewState, config=None) -> dict:
             "Output a short numbered list of Socratic questions, one per fault."
         )
     )
+    lang_name, _ = _language_info(state)
     socratic_human = HumanMessage(
         content=(
+            f"LANGUAGE: {lang_name}\n\n"
             f"TASK:\n{state['task_description']}\n\n"
-            f"The student's current code is:\n{state['current_code']}\n\n"
+            f"The student's current {lang_name} code is:\n{state['current_code']}\n\n"
             f"Confirmed logic/edge-case faults to guide them toward:\n"
             f"{faults_text}\n\n"
             "Write Socratic questions (no code, no code blocks) that lead the "
@@ -390,10 +443,12 @@ def socratic_tutor(state: ReviewState, config=None) -> dict:
         )
         direct_human = HumanMessage(
             content=(
+                f"LANGUAGE: {lang_name}\n\n"
                 f"TASK:\n{state['task_description']}\n\n"
                 f"CODE:\n{state['current_code']}\n\n"
                 f"FAULTS:\n{faults_text}\n\n"
-                "Explain the fix directly so the student can move forward."
+                f"Explain the fix directly (in terms of {lang_name}) so the "
+                "student can move forward."
             )
         )
         direct_solution = _llm_from_config(config).invoke([direct_system, direct_human]).content
@@ -421,23 +476,31 @@ def clean_code_critic(state: ReviewState, config=None) -> dict:
     "approved" status; the style notes are advisory polish.
     """
 
+    lang_name, style_guide = _language_info(state)
     critic_system = SystemMessage(
         content=(
-            "You are the Clean-Code Critic. The submitted code is already "
-            "logically correct, so do NOT re-check correctness. Review only:\n"
+            f"You are the Clean-Code Critic reviewing {lang_name} code. The "
+            "submitted code is already logically correct, so do NOT re-check "
+            "correctness. Review only:\n"
             "1. COMPLEXITY: State the time and space complexity in Big-O "
             "   notation and say whether a better complexity is achievable.\n"
-            "2. PEP-8: Note any style violations (naming, spacing, line length, "
-            "   idiomatic Python) and suggest concrete improvements.\n\n"
+            f"2. STYLE: Note any style violations against {style_guide} "
+            f"   (naming, spacing, line length, idiomatic {lang_name}) and "
+            "   suggest concrete improvements.\n\n"
+            f"CRITICAL: The code is written in {lang_name}. Review it AS "
+            f"{lang_name}. Never assume or rewrite it in another language, and "
+            f"never apply another language's style rules.\n\n"
             "Be concise, professional, and encouraging. Here, since the logic "
             "is sound, you MAY reference small code-style examples freely."
         )
     )
     critic_human = HumanMessage(
         content=(
+            f"LANGUAGE: {lang_name}\n\n"
             f"TASK:\n{state['task_description']}\n\n"
-            f"LOGICALLY-CORRECT CODE:\n{state['current_code']}\n\n"
-            "Provide the Big-O analysis and PEP-8 style review."
+            f"LOGICALLY-CORRECT {lang_name} CODE:\n{state['current_code']}\n\n"
+            f"Provide the Big-O analysis and {style_guide} style review for "
+            f"this {lang_name} code."
         )
     )
 
@@ -581,6 +644,7 @@ if __name__ == "__main__":
     turn1_input: ReviewState = {
         "task_description": TASK,
         "current_code": turn1_code,
+        "language": "python",
         "edge_case_faults": [],
         "socratic_hints": "",
         "style_feedback": "",
