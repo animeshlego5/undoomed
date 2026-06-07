@@ -909,10 +909,17 @@ working.)
 lists `*.onrender.com` in `host_permissions`, so the browser won't block the
 request — no manifest change needed.
 
+- **`src/undoomed/cli.py`** — changed the default `API_BASE_URL` from
+  `http://127.0.0.1:8000` to `https://undoomed.onrender.com`. Now anyone who
+  runs `undoom check <file>` after installing the package automatically hits the
+  live server — no env var or config step required. The `UNDOOMED_API_URL` env
+  var override stays for developers running a local server. The connection-error
+  message and module docstring were also updated to reflect the new default.
+
 **Next steps (one-time, if not done already):**
 1. Reload the unpacked extension in Edge/Chrome (Extensions → reload icon) so
    the new `config.js` takes effect.
 2. If you set `UNDOOMED_SERVER_SECRET` on Render, paste the same value into
    the extension's Settings → **Server password** field.
-3. CLI users: `export UNDOOMED_API_URL=https://undoomed.onrender.com` (or set
-   it permanently in the shell profile) and re-run `undoom check` setup.
+3. Local dev: to point the CLI at your local server, run:
+   `export UNDOOMED_API_URL=http://127.0.0.1:8000`

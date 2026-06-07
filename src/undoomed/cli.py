@@ -17,7 +17,8 @@ What it does
    (prompting you once, securely, on first run and saving the file).
 3. Keeps a per-project `thread_id` in a `.undoomed_session` file in the CURRENT
    directory, so repeated checks on the same project increment the loop counter.
-4. POSTs everything to the local server (http://127.0.0.1:8000/api/review).
+4. POSTs everything to the backend (https://undoomed.onrender.com by default,
+   or UNDOOMED_API_URL if that env var is set).
 5. Prints the Socratic hints (or the style review once your logic is clean) as
    pretty `rich` panels with Markdown.
 
@@ -38,12 +39,12 @@ from rich.prompt import Prompt
 from rich.text import Text
 
 # ----------------------------------------------------------------------------
-#  >>> WHERE THE BACKEND LIVES — change this when you deploy <<<
-#  Local development : http://127.0.0.1:8000
-#  Production        : set the UNDOOMED_API_URL env var, or edit the default.
-#    e.g.  export UNDOOMED_API_URL=https://undoomed-backend.onrender.com
+#  WHERE THE BACKEND LIVES
+#  Default: the live production server, so `undoom check` works out of the box.
+#  Override: set UNDOOMED_API_URL to point at a local or self-hosted backend.
+#    e.g.  export UNDOOMED_API_URL=http://127.0.0.1:8000
 # ----------------------------------------------------------------------------
-API_BASE_URL = os.environ.get("UNDOOMED_API_URL", "http://127.0.0.1:8000")
+API_BASE_URL = os.environ.get("UNDOOMED_API_URL", "https://undoomed.onrender.com")
 API_URL = API_BASE_URL.rstrip("/") + "/api/review"
 
 CONFIG_PATH = Path.home() / ".undoomed_config.json"   # global: provider + key
@@ -235,8 +236,8 @@ def check(filename: Path, task: str, reset_config: bool) -> None:
     except requests.exceptions.ConnectionError:
         console.print(
             Panel(
-                "Couldn't reach the Un-doomed server at 127.0.0.1:8000.\n"
-                "Start it first:  [bold]undoom serve[/]",
+                f"Couldn't reach the Un-doomed server at [bold]{API_BASE_URL}[/].\n"
+                "If running locally, start it first:  [bold]undoom serve[/]",
                 title="Connection error",
                 border_style="red",
             )
