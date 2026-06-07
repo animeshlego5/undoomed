@@ -37,7 +37,15 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.text import Text
 
-API_URL = "http://127.0.0.1:8000/api/review"
+# ----------------------------------------------------------------------------
+#  >>> WHERE THE BACKEND LIVES — change this when you deploy <<<
+#  Local development : http://127.0.0.1:8000
+#  Production        : set the UNDOOMED_API_URL env var, or edit the default.
+#    e.g.  export UNDOOMED_API_URL=https://undoomed-backend.onrender.com
+# ----------------------------------------------------------------------------
+API_BASE_URL = os.environ.get("UNDOOMED_API_URL", "http://127.0.0.1:8000")
+API_URL = API_BASE_URL.rstrip("/") + "/api/review"
+
 CONFIG_PATH = Path.home() / ".undoomed_config.json"   # global: provider + key
 SESSION_FILE = Path(".undoomed_session")              # per-project: thread_id
 DEFAULT_TASK = "Review this code for logic and edge cases"
@@ -70,11 +78,18 @@ def _prompt_and_save_config() -> dict:
     default_model = DEFAULT_MODELS[provider]
     model = Prompt.ask(f"Model (blank = {default_model})", default="", show_default=False)
     api_key = Prompt.ask("API key", password=True)  # hidden input
+    server_secret = Prompt.ask(
+        "Server password (optional — only if your backend requires one)",
+        password=True,
+        default="",
+        show_default=False,
+    )
 
     config = {
         "provider": provider,
         "model": model.strip(),
         "api_key": api_key.strip(),
+        "server_secret": server_secret.strip(),
     }
     _save_config(config)
     return config
@@ -200,6 +215,11 @@ def check(filename: Path, task: str, reset_config: bool) -> None:
         "api_key": config.get("api_key"),
     }
 
+    # Send the shared secret only if one was configured (open servers ignore it).
+    req_headers = {}
+    if config.get("server_secret"):
+        req_headers["X-Server-Secret"] = config["server_secret"]
+
     header = Text.assemble(
         ("Un-doomed", "bold magenta"),
         ("  |  ", "dim"),
@@ -211,7 +231,7 @@ def check(filename: Path, task: str, reset_config: bool) -> None:
 
     try:
         with console.status("[bold]Reviewing your code…", spinner="dots"):
-            response = requests.post(API_URL, json=payload, timeout=120)
+            response = requests.post(API_URL, json=payload, headers=req_headers, timeout=120)
     except requests.exceptions.ConnectionError:
         console.print(
             Panel(

@@ -28,7 +28,8 @@ import urllib.error
 import urllib.request
 
 # --- Where the server and the database live ---------------------------------
-API_BASE = "http://127.0.0.1:8000"
+# UNDOOMED_API_URL lets CI / alternate ports point this elsewhere (default local).
+API_BASE = os.environ.get("UNDOOMED_API_URL", "http://127.0.0.1:8000").rstrip("/")
 REVIEW_URL = API_BASE + "/api/review"
 HEALTH_URL = API_BASE + "/health"
 # The server writes the DB into its working directory, so look in ours too.

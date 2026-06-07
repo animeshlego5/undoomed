@@ -1,0 +1,24 @@
+# Keep the build context small and the image clean.
+**/__pycache__
+**/*.egg-info
+.git
+.gitignore
+
+# Local data / secrets — never bake these into the image.
+.env
+.env.example
+*.db
+*.db-shm
+*.db-wal
+
+# Frontend / marketing files aren't part of the backend image.
+*.html
+*.css
+content.js
+popup.js
+options.js
+config.js
+manifest.json
+vercel.json
+.vercelignore
+smoke_test.py

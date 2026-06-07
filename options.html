@@ -44,6 +44,21 @@
           </div>
         </div>
 
+        <label class="field" for="server-secret">
+          <span class="field__label">
+            Server password
+            <span class="field__hint">(only if your backend requires one)</span>
+          </span>
+          <input
+            id="server-secret"
+            class="field__input"
+            type="password"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="leave blank for local use"
+          />
+        </label>
+
         <div class="btn-row">
           <button type="submit" class="btn">Save settings</button>
           <button type="button" id="test-btn" class="btn btn--ghost">Test connection</button>
@@ -59,6 +74,7 @@
       </p>
     </main>
 
+    <script src="config.js"></script>
     <script src="options.js"></script>
   </body>
 </html>

@@ -104,6 +104,8 @@ You can skip this and refer back to it whenever a term is unfamiliar.
 
 ```
 undoomed/
+├─ README.md              # Project storefront / open-source landing (start here)
+├─ LICENSE                # MIT license
 ├─ pyproject.toml          # Package config: deps + the `undoom` command entry point
 ├─ src/
 │  └─ undoomed/            # The installable Python package
@@ -119,11 +121,18 @@ undoomed/
 │
 ├─ manifest.json          # Browser extension ID card + permissions (Manifest V3)
 ├─ content.js             # Reads the problem + code from the LeetCode page
+├─ config.js              # SHARED client config: the backend URL (one place to edit)
 ├─ popup.html / .css / .js     # The popup panel (scrape → send → show)
 ├─ options.html / .css / .js   # Settings page (provider + key + Test connection)
 │
 ├─ agent.md               # Drop-in AI-assistant rules (Claude Code / Cursor)
 ├─ index.html             # The marketing landing page (Tailwind via CDN)
+│
+├─ vercel.json            # Vercel: serve the static frontend, skip any build
+├─ .vercelignore          # Keeps the Python backend out of the Vercel deploy
+├─ Dockerfile             # Production image for the backend (Render/Railway)
+├─ .dockerignore          # Keeps secrets/data/frontend out of the image
+├─ .github/               # CI workflow (ci.yml) + issue/PR templates
 └─ documentation.md       # This file
 ```
 
@@ -443,6 +452,46 @@ questions. (c) The landing page's `agent.md` card changed from "Coming soon" to
 **"View instructions,"** opening a modal that shows the `agent.md` contents with
 Copy + Download. Both modals share one open/close script (backdrop / ✕ / Escape).
 
+**Prompt 11 — Escaping the "Localhost Trap" (deploy prep).**
+Made the clients point anywhere, not just localhost. Added a shared **`config.js`**
+(one `UNDOOMED_API_BASE_URL` line, loaded by both popup and options pages); the
+CLI reads the same value from an **`UNDOOMED_API_URL`** env var (default
+localhost). Added Render/Railway wildcards to the extension's `host_permissions`.
+Added **`vercel.json`** + **`.vercelignore`** so Vercel serves only the static
+frontend and ignores the Python backend, and a production **`Dockerfile`** (+
+`.dockerignore`) that installs the package with all providers and runs uvicorn on
+`$PORT` for Render/Railway. The earlier `UNDOOMED_DB` override now lets the cloud
+DB live on a mounted disk.
+
+**Prompt 12 — Shared-secret gate (production-ready).**
+Added optional auth so a public backend doesn't burn your compute. The server
+reads **`UNDOOMED_SERVER_SECRET`**: if set, every `/api/review` request must send
+a matching **`X-Server-Secret`** header (else **401**, compared in constant time);
+if unset, the API stays open for frictionless local dev. `/health` is always
+open (for platform health checks). The extension Settings page gained an optional
+**"Server password"** field (saved to `chrome.storage.local`, sent as the header
+by both the popup and the Test-connection button), and the CLI now prompts for an
+optional `server_secret` during setup (stored in `~/.undoomed_config.json`) and
+sends it on every request. Verified with FastAPI's TestClient: no/!wrong header →
+401, correct → 200, `/health` → 200.
+
+**Prompt 13 — Open-source storefront (README + LICENSE).**
+Added a polished **`README.md`** (badges, the Un-doomed philosophy, a Mermaid
+architecture diagram, CLI quick-start, and Render/Railway deploy steps) and an
+**MIT `LICENSE`**. Switched the package's long-description (`readme` in
+`pyproject.toml`) from `documentation.md` to `README.md` (the conventional choice)
+and updated the Dockerfile copy to match. Ready to push to GitHub.
+
+**Prompt 14 — GitHub niceties: CI + templates + offline test provider.**
+Added `.github/workflows/ci.yml` (on push/PR to `main`: sets up Python, installs
+the package, byte-compiles, spins up the server, and runs `smoke_test.py`). To
+make CI free and deterministic with **no API key**, added a built-in **`fake`
+provider** (`LLM_PROVIDER=fake`) — an offline stub that always reports one fault,
+so the Executioner → Tutor path and `loop_count` run predictably. `smoke_test.py`
+now honours `UNDOOMED_API_URL` so it can target any port. Added issue templates
+(`bug_report.md`, `feature_request.md`) and `PULL_REQUEST_TEMPLATE.md`. Verified
+locally by running the exact CI flow against the fake provider → `RESULT: PASS`.
+
 ---
 
 ## 9. Testing & troubleshooting
@@ -533,6 +582,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 ```
+
+### 9.6 Continuous integration (GitHub Actions)
+
+`.github/workflows/ci.yml` runs on every push and pull request to `main`. It
+installs the package, byte-compiles everything, starts the backend, and runs
+`smoke_test.py` against it — the same end-to-end check you can run locally.
+
+The trick that makes CI **free and reliable**: it sets `LLM_PROVIDER=fake`, a
+built-in **offline test provider** that needs no API key and no network. The fake
+always reports one fault, so the Executioner → Socratic Tutor path runs and
+`loop_count` increments deterministically (1 → 2), exactly what the smoke test
+expects. (You can use it locally too: `LLM_PROVIDER=fake undoom serve`.)
+
+A green run is what backs the "build passing" badge in the README.
 
 ---
 
@@ -748,7 +811,77 @@ mentor instead of an answer dispenser.
 
 ---
 
-## 15. What's next (ideas, not yet built)
+## 15. Going live — deployment (Phase 5)
+
+To share Un-doomed with friends, two things get deployed separately: the static
+**landing page** (Vercel) and the **backend** (a container host like Render or
+Railway). The clients (extension + CLI) then point at the deployed backend.
+
+### 15.1 Point the clients at your backend
+
+Everything funnels through one setting:
+
+- **Extension:** edit the single line in **`config.js`**
+  (`window.UNDOOMED_API_BASE_URL = "https://your-backend..."`). Both the popup
+  and the Settings page read it.
+- **CLI:** set an environment variable —
+  `export UNDOOMED_API_URL=https://your-backend...` (or edit the default in
+  `cli.py`).
+- **Extension permissions:** the backend's origin must also be in
+  `host_permissions` in `manifest.json`, or the browser blocks the call. The
+  Render (`*.onrender.com`) and Railway (`*.up.railway.app`) wildcards are
+  already there; add your own custom domain if you use one. Reload the extension
+  after editing.
+
+### 15.2 Deploy the landing page to Vercel
+
+`vercel.json` tells Vercel this is a **static** project (no build, no install)
+and to serve the repo root; `.vercelignore` removes the Python backend from the
+upload so the build can't fail on it. Connect the GitHub repo to Vercel and it
+will serve `index.html` (plus `agent.md`, the CSS/JS, etc.). No environment
+variables are needed for the page itself.
+
+### 15.3 Deploy the backend with Docker (Render / Railway)
+
+The `Dockerfile` builds a production image:
+
+- installs the package with **all** AI providers, so any client-chosen provider
+  works;
+- runs as a non-root user;
+- binds uvicorn to `0.0.0.0` on the platform's **`$PORT`**.
+
+On Render or Railway: create a new service from the repo, choose **Docker**, and
+deploy — no start command needed (the image's `CMD` handles it). You do **not**
+have to set provider API keys on the server: each client sends its own key per
+request. (If you want a server-side fallback key, set `OPENAI_API_KEY` etc. as
+environment variables.)
+
+**One caveat — memory persistence:** the SQLite memory file lives in the
+container's working directory, which most platforms **wipe on every redeploy**.
+For durable `loop_count`/history, attach a persistent disk and set
+`UNDOOMED_DB=/data/undoomed_state.db` (with the disk mounted at `/data`).
+
+### 15.4 Lock down the backend with a shared secret
+
+A public backend with no auth means anyone who finds the URL can spend your
+server's compute (they'd still need their own AI key, so *your* key isn't at
+risk — but your bandwidth/CPU is). Fix it with one environment variable:
+
+1. On your host (Render/Railway), set **`UNDOOMED_SERVER_SECRET`** to a long
+   random string. That instantly requires every `/api/review` call to carry a
+   matching `X-Server-Secret` header; anything else gets a `401`.
+2. Give your friends that password. They paste it once:
+   - **Extension:** Settings → **Server password** → Save.
+   - **CLI:** it's asked during first-time setup (or run a check with
+     `--reset-config` to set it). Stored in `~/.undoomed_config.json`.
+
+Leave `UNDOOMED_SERVER_SECRET` unset for local development and the gate is simply
+off — no header needed. (`/health` is never gated, so platform health checks keep
+working.)
+
+---
+
+## 16. What's next (ideas, not yet built)
 
 - Optional icons for the extension toolbar.
 - A short "history" view in the popup showing previous attempts.

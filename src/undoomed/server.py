@@ -28,16 +28,27 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os  # noqa: E402
+import secrets  # noqa: E402
 import sqlite3  # noqa: E402
 from contextlib import asynccontextmanager  # noqa: E402
 from typing import List  # noqa: E402  (kept after load_dotenv on purpose)
 
-from fastapi import FastAPI, HTTPException  # noqa: E402
+from fastapi import FastAPI, Header, HTTPException  # noqa: E402
 from pydantic import BaseModel, Field  # noqa: E402
 
 from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: E402
 
 from .socratic_reviewer import build_graph, build_llm  # noqa: E402
+
+
+# ---------------------------------------------------------------------------
+# Optional shared-secret gate
+# ---------------------------------------------------------------------------
+# If UNDOOMED_SERVER_SECRET is set in the environment, every /api/review request
+# must carry a matching `X-Server-Secret` header (otherwise 401). If it is NOT
+# set, the API is open — so local development stays frictionless while a
+# deployed/public backend can be locked down by just setting the env var.
+SERVER_SECRET = os.environ.get("UNDOOMED_SERVER_SECRET")
 
 
 # ---------------------------------------------------------------------------
@@ -158,7 +169,10 @@ def health() -> dict:
 
 
 @app.post("/api/review", response_model=ReviewResponse)
-def review(req: ReviewRequest) -> ReviewResponse:
+def review(
+    req: ReviewRequest,
+    x_server_secret: str | None = Header(default=None),
+) -> ReviewResponse:
     """Run one review turn through the LangGraph workflow.
 
     We pass ONLY ``task_description`` and ``current_code`` as input. Everything
@@ -166,6 +180,16 @@ def review(req: ReviewRequest) -> ReviewResponse:
     this ``thread_id`` -- deliberately not sending loop_count keeps it from
     being reset, so it accumulates across requests.
     """
+    # Shared-secret gate. Only enforced when UNDOOMED_SERVER_SECRET is set.
+    # secrets.compare_digest is constant-time (avoids leaking the secret via
+    # response-timing differences).
+    if SERVER_SECRET and not (
+        x_server_secret and secrets.compare_digest(x_server_secret, SERVER_SECRET)
+    ):
+        raise HTTPException(
+            status_code=401, detail="Invalid or missing X-Server-Secret header."
+        )
+
     configurable = {"thread_id": req.thread_id}
 
     # If the extension supplied credentials, build a client from them for THIS

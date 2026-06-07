@@ -6,12 +6,18 @@
 
 "use strict";
 
-const API_URL = "http://127.0.0.1:8000/api/review";
+// Base URL comes from config.js (the single place to change for production).
+// Falls back to localhost if config.js somehow didn't load.
+const API_BASE_URL =
+  (typeof window !== "undefined" && window.UNDOOMED_API_BASE_URL) ||
+  "http://127.0.0.1:8000";
+const API_URL = API_BASE_URL.replace(/\/+$/, "") + "/api/review";
 
 const STORAGE = {
   provider: "undoomed_provider",
   model: "undoomed_model",
   apiKey: "undoomed_api_key",
+  serverSecret: "undoomed_server_secret",
 };
 
 // Default model shown as a placeholder hint for each provider.
@@ -25,6 +31,7 @@ const DEFAULT_MODEL = {
 const providerEl = document.getElementById("provider");
 const modelEl = document.getElementById("model");
 const keyEl = document.getElementById("api-key");
+const serverEl = document.getElementById("server-secret");
 const statusEl = document.getElementById("status");
 const toggleBtn = document.getElementById("toggle-key");
 const testBtn = document.getElementById("test-btn");
@@ -44,10 +51,12 @@ async function loadSettings() {
     STORAGE.provider,
     STORAGE.model,
     STORAGE.apiKey,
+    STORAGE.serverSecret,
   ]);
   providerEl.value = saved[STORAGE.provider] || "openai";
   modelEl.value = saved[STORAGE.model] || "";
   keyEl.value = saved[STORAGE.apiKey] || "";
+  serverEl.value = saved[STORAGE.serverSecret] || "";
   refreshModelPlaceholder();
 }
 
@@ -67,6 +76,7 @@ document.getElementById("settings-form").addEventListener("submit", async (event
     [STORAGE.provider]: providerEl.value,
     [STORAGE.model]: modelEl.value.trim(),
     [STORAGE.apiKey]: apiKey,
+    [STORAGE.serverSecret]: serverEl.value.trim(),
   });
 
   if (apiKey) {
@@ -91,9 +101,13 @@ testBtn.addEventListener("click", async () => {
   setStatus("Testing connection…");
 
   try {
+    const headers = { "Content-Type": "application/json" };
+    const secret = serverEl.value.trim();
+    if (secret) headers["X-Server-Secret"] = secret;
+
     const response = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         task_description: "Connection test — please respond.",
         current_code: "print('hello world')",
@@ -120,7 +134,7 @@ testBtn.addEventListener("click", async () => {
     setStatus("✗ " + detail, "error");
   } catch (err) {
     setStatus(
-      "✗ Can't reach the server at 127.0.0.1:8000 — is it running? (" + err.message + ")",
+      "✗ Can't reach the server at " + API_BASE_URL + " — is it running? (" + err.message + ")",
       "error"
     );
   } finally {

@@ -1,0 +1,22 @@
+# Keep the Python backend OUT of the static Vercel deploy entirely, so Vercel
+# never tries to build it. Vercel serves only the frontend files that remain
+# (index.html, popup/options .html/.css/.js, content.js, config.js, agent.md).
+
+# --- Python backend & packaging ---
+src/
+*.py
+pyproject.toml
+requirements.txt
+*.egg-info/
+__pycache__/
+
+# --- Local data / secrets ---
+.env
+.env.example
+undoomed_state.db
+undoomed_state.db-shm
+undoomed_state.db-wal
+
+# --- Backend container files ---
+Dockerfile
+.dockerignore

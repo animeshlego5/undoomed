@@ -150,6 +150,33 @@ def resolve_provider() -> str:
     return _PROVIDER_ALIASES.get(name, name)
 
 
+# ---------------------------------------------------------------------------
+# Offline test provider (LLM_PROVIDER=fake)
+# ---------------------------------------------------------------------------
+# A deterministic stand-in used by CI / smoke tests: no network, no API key.
+# It always reports exactly one fault, so the graph reliably exercises the
+# Executioner -> Socratic Tutor path and loop_count increments as expected.
+class _FakeStructured:
+    def __init__(self, schema):
+        self._schema = schema
+
+    def invoke(self, _messages):
+        return self._schema(has_errors=True, issues=["stubbed edge-case fault"])
+
+
+class _FakeMessage:
+    def __init__(self, content):
+        self.content = content
+
+
+class _FakeChatModel:
+    def with_structured_output(self, schema):
+        return _FakeStructured(schema)
+
+    def invoke(self, _messages):
+        return _FakeMessage("Stubbed Socratic response for offline testing.")
+
+
 def build_llm(provider: str | None = None,
               model: str | None = None,
               api_key: str | None = None):
@@ -168,6 +195,10 @@ def build_llm(provider: str | None = None,
     name = (provider or os.getenv("LLM_PROVIDER", "openai")).strip().lower()
     name = _PROVIDER_ALIASES.get(name, name)
     model = (model or os.getenv("LLM_MODEL", "")).strip() or _DEFAULT_MODELS.get(name)
+
+    if name == "fake":
+        # Offline test/CI provider — no network, no key required.
+        return _FakeChatModel()
 
     if name == "openai":
         try:
@@ -514,8 +545,8 @@ if __name__ == "__main__":
     load_dotenv()
 
     _provider = resolve_provider()
-    _key_var = _PROVIDER_KEYS.get(_provider, "OPENAI_API_KEY")
-    if not os.getenv(_key_var):
+    _key_var = _PROVIDER_KEYS.get(_provider)  # None for the keyless 'fake' provider
+    if _key_var and not os.getenv(_key_var):
         raise SystemExit(
             f"LLM_PROVIDER is '{_provider}', but {_key_var} is not set.\n"
             f"    Add {_key_var}=... to your .env file\n"

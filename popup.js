@@ -12,7 +12,12 @@
 
 "use strict";
 
-const API_URL = "http://127.0.0.1:8000/api/review";
+// Base URL comes from config.js (the single place to change for production).
+// Falls back to localhost if config.js somehow didn't load.
+const API_BASE_URL =
+  (typeof window !== "undefined" && window.UNDOOMED_API_BASE_URL) ||
+  "http://127.0.0.1:8000";
+const API_URL = API_BASE_URL.replace(/\/+$/, "") + "/api/review";
 
 // ---- DOM references ---------------------------------------------------------
 const btn = document.getElementById("review-btn");
@@ -44,11 +49,13 @@ async function getSettings() {
     "undoomed_provider",
     "undoomed_model",
     "undoomed_api_key",
+    "undoomed_server_secret",
   ]);
   return {
     provider: saved.undoomed_provider || "openai",
     model: saved.undoomed_model || "",
     api_key: saved.undoomed_api_key || "",
+    server_secret: saved.undoomed_server_secret || "",
   };
 }
 
@@ -169,9 +176,12 @@ async function requestReview() {
     const thread_id = await getThreadId();
     setStatus("Sending to your local Un-doomed reviewer…");
 
+    const headers = { "Content-Type": "application/json" };
+    if (settings.server_secret) headers["X-Server-Secret"] = settings.server_secret;
+
     const response = await fetch(API_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         task_description,
         current_code,
@@ -181,7 +191,18 @@ async function requestReview() {
         api_key: settings.api_key,
       }),
     });
-    if (!response.ok) throw new Error("server responded " + response.status);
+    if (!response.ok) {
+      // Surface the server's own message (e.g. 401 bad secret, 400 bad provider).
+      let detail = "Server responded " + response.status + ".";
+      try {
+        const body = await response.json();
+        if (body && body.detail) detail = body.detail;
+      } catch (_) {
+        /* keep the status-code message */
+      }
+      setStatus(detail, true);
+      return;
+    }
 
     const data = await response.json();
     setStatus("");
@@ -203,9 +224,8 @@ async function requestReview() {
     }
   } catch (err) {
     setStatus(
-      "Couldn't reach the Un-doomed API at 127.0.0.1:8000. Is the server running? (" +
-        err.message +
-        ")",
+      "Couldn't reach the Un-doomed API at " + API_BASE_URL +
+        ". Is the server running? (" + err.message + ")",
       true
     );
   } finally {

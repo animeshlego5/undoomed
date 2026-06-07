@@ -1,3 +1,5 @@
+LICENSE
+README.md
 documentation.md
 pyproject.toml
 src/undoomed/__init__.py
