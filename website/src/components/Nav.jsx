@@ -1,12 +1,14 @@
+import LogoMark from "./LogoMark.jsx";
+
 export default function Nav() {
   return (
     <header className="sticky top-0 z-30 glass border-b border-line">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
         <a href="#top" className="flex items-center gap-2.5">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent font-bold text-white">
-            ?
+          <LogoMark size={30} />
+          <span className="text-[17px] font-semibold tracking-tight">
+            Un-<span className="line-through decoration-accent decoration-2">Doomed</span>
           </span>
-          <span className="font-medium tracking-tight">Un-doomed</span>
         </a>
         <div className="hidden items-center gap-8 text-sm text-muted md:flex">
           <a href="#how" className="transition-colors hover:text-ink">How it works</a>

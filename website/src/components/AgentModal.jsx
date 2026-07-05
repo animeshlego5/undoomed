@@ -53,7 +53,7 @@ export default function AgentModal({ open, onClose }) {
           <button
             type="button"
             onClick={handleCopy}
-            className="inline-flex items-center gap-1.5 rounded-full border border-ink/25 px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:border-ink"
+            className="inline-flex items-center gap-1.5 rounded-full border border-ink/25 px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:border-accent hover:bg-accent hover:text-white"
           >
             <Copy size={14} strokeWidth={1.5} />
             {copied ? "Copied!" : "Copy"}

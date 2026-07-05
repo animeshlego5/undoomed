@@ -16,7 +16,7 @@ export default function Hero() {
         </h1>
 
         <p className="reveal-2 mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted">
-          Un-doomed is the Socratic AI code reviewer that{" "}
+          Un-Doomed is the Socratic AI code reviewer that{" "}
           <span className="font-medium text-ink">forces you to think</span>. It
           hunts your edge cases, asks the questions that lead you to the bug, and
           only critiques style once your logic is sound.
@@ -31,7 +31,7 @@ export default function Hero() {
           </a>
           <a
             href="#cli"
-            className="rounded-full border border-ink/25 px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:border-ink"
+            className="rounded-full border border-ink/25 px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:border-accent hover:bg-accent hover:text-white"
           >
             Install the CLI
           </a>

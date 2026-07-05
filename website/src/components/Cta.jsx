@@ -11,7 +11,7 @@ export default function Cta() {
           Think it through. Ship it clean.
         </h3>
         <p className="mt-4 max-w-md text-surface/70">
-          Add Un-doomed to your workflow and turn every bug into a lesson.
+          Add Un-Doomed to your workflow and turn every bug into a lesson.
         </p>
         <a
           href="#downloads"

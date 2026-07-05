@@ -1,5 +1,5 @@
 // =============================================================================
-// background.js — Un-doomed MV3 service worker (the review engine).
+// background.js — Un-Doomed MV3 service worker (the review engine).
 // =============================================================================
 //
 // Why this exists
@@ -231,7 +231,7 @@ async function runReview(tabId, url) {
     });
   } catch (e) {
     const msg =
-      "Couldn't reach the Un-doomed API at " + API_BASE_URL + ". Is the server running?";
+      "Couldn't reach the Un-Doomed API at " + API_BASE_URL + ". Is the server running?";
     await sendToTab(tabId, { type: "UNDOOMED_OVERLAY", phase: "error", message: msg });
     return { ok: false, error: msg };
   }

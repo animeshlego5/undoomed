@@ -71,11 +71,11 @@ async function requestReview() {
     if (res && res.ok && res.unchanged) {
       setStatus("No code changes — showing your last review on the page →");
     } else if (res && res.ok) {
-      setStatus("Done — see the Un-doomed panel on the page →");
+      setStatus("Done — see the Un-Doomed panel on the page →");
     } else if (res && res.error) {
       setStatus(res.error, true);
     } else {
-      setStatus("Review started — see the Un-doomed panel on the page →");
+      setStatus("Review started — see the Un-Doomed panel on the page →");
     }
   } catch (err) {
     setStatus("Couldn't start the review: " + err.message, true);

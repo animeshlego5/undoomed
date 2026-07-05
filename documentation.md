@@ -273,9 +273,12 @@ This file tells Chrome:
   problems), your local backend, and the deployed backends (`*.onrender.com`,
   `*.up.railway.app`).
 - Its **action** — clicking the toolbar icon opens `popup.html`.
-- Its **icons** — the `icons/` folder holds the brand mark (a blue rounded
-  square with a white "?") at 16, 48, and 128 pixels, used in the toolbar, the
-  extensions page, and any future store listing.
+- Its **icons** — the `icons/` folder holds the brand mark (a **phone whose
+  body forms a "D", struck through in blue** — doomscrolling, crossed out — on
+  a cream rounded square) at 16, 48, and 128 pixels, used in the toolbar, the
+  extensions page, and any future store listing. The same mark appears inside
+  the popup, the Settings page, and the on-page panel as an inline drawing
+  that recolors itself for light/dark mode.
 - Its **background service worker** — `background.js` (the review engine, §6.3).
 - Its **content scripts** — `md.js` then `content.js`, auto-loaded on any
   `https://leetcode.com/problems/*` page.
@@ -820,7 +823,7 @@ edits take effect immediately — no reinstall needed.
 
 ---
 
-## 13. The landing page (`website/`, Phase 4b — rebuilt in Prompt 23)
+## 13. The landing page (`website/`, Phase 4b — rebuilt in Prompt 23, redesigned in Prompt 25)
 
 The marketing site lives in the **`website/`** folder as a modern web app:
 **Vite** (the build tool), **React 19** (components), **Tailwind CSS v4**
@@ -828,24 +831,54 @@ The marketing site lives in the **`website/`** folder as a modern web app:
 installs and builds it). It replaced the old single-file `index.html`, which
 has been deleted. No backend is required — the site is fully static.
 
-It keeps the same calm, "anti-doomscrolling" brand as the extension — soft grey
-surface with a faint dot grid, **greyscale with a single blue accent** — and
-adds two upgrades: the whole site is set in the **terminal font stack**
-(`Monaco, Menlo, Ubuntu Mono, Consolas, source-code-pro`), and it has automatic
-**dark mode** (the design tokens are CSS variables that flip with your OS
-preference, so components never hardcode colors).
+**The look (Prompt 25, inspired by auxia.io):** a warm **cream canvas
+(`#f0efe3`)** with near-black ink, hairline borders, big editorial type, and
+the single blue accent reserved for what matters. The body face is
+**PP Neue Montreal** (falling back to Arial — see the licensing note in
+`src/index.css`: it's a commercial font, so drop your licensed `.woff2` files
+into `public/fonts/` and uncomment the `@font-face` block to activate it).
+The terminal stack (`Monaco, Menlo, …`) is kept for code, chips, and the small
+uppercase "eyebrow" labels. There are **no emojis** — every pictogram is a thin
+**lucide icon** — and the site is deliberately light-only so the cream brand
+color always shows.
 
 The layout (each piece is its own file in `website/src/components/`):
 
 - `Nav` — sticky frosted header; `Hero` — *"Stop scrolling. Start building."*
-  plus the terminal mock-up of an `undoom check` run;
-- `HowItWorks` — the three-reviewer row;
+  above the centerpiece:
+- `BrowserDemo` — a **self-playing product demo**: a browser window with the
+  real Safari toolbar layout (traffic lights, sidebar + back/forward buttons,
+  privacy shield, centered address pill with a reload icon, then share /
+  new-tab / tabs buttons) showing a mock LeetCode "Two Sum" page — problem
+  text left, dark **line-numbered** code editor right (with a LeetCode-style
+  header: a "Code" label and a **Python3 language selector**) showing a subtly
+  buggy solution. It plays in four steps: the launcher pill is "clicked", the review
+  panel slides in, a spinner runs, then the verdict + two **edge-case faults**
+  and finally two **Socratic hints** appear line by line — exactly the
+  first-agent experience, hints and never the answer. Below the window a
+  **clickable step indicator** (four chips on a blue rail: Review requested ·
+  Analyzing code · Edge-case faults · Socratic hints) shows where the story
+  is; clicking a chip jumps the demo to that step. For people who prefer
+  reduced motion it opens on the finished state and doesn't auto-play (the
+  chips still work), and the window itself is marked decorative for screen
+  readers with a text alternative.
+- `HowItWorks` — an auxia-style **scroll journey**: a vertical rail down the
+  center that **fills with blue as you scroll**, with the three reviewers as
+  stages that **zig-zag** around it (left → right → left; single column on
+  phones). Each stage has a blue pill (icon + agent name), its description,
+  and a **live looping demo card** showing that agent at work: the
+  Executioner sweeps edge cases and lands a "3 FAULTS FOUND" verdict, the
+  Tutor "types" and asks two Socratic questions, and the Critic strikes
+  through O(n²), replaces it with O(n), and ticks a style checklist. Stages
+  fade up the first time they enter the viewport; all motion respects the
+  reduced-motion setting;
 - `Downloads` — four cards: **Browser Extension** ("Get Beta Access" modal with
   load-unpacked steps and a real `.zip` download — see below), **CLI Tool**
   (copy-to-clipboard `pip install undoomed`), **VS Code** (coming soon), and
   **Claude `agent.md`** (modal with the file's contents + Copy/Download);
-- `Faq`, `Cta`, `Footer`; `Modal` — one shared, accessible modal (Escape,
-  backdrop click, and ✕ all close it; the page behind stops scrolling).
+- `Faq` (bare divider rows with a rotating plus), `Cta` (a dark ink panel),
+  `Footer`; `Modal` — one shared, accessible modal (Escape, backdrop click,
+  and the X icon all close it; the page behind stops scrolling).
 
 **The download is real now:** at build time a small script
 (`website/scripts/make-extension-zip.mjs`) zips the actual extension files
@@ -1411,3 +1444,225 @@ was installed — terminals only read the PATH when they start. Fix: open a new
 terminal, or refresh the current one with
 `$env:Path += ";$env:USERPROFILE\.bun\bin"`. A troubleshooting note was added
 to §13 so the next person isn't surprised.
+
+### Prompt 25 — Website redesign: cream editorial look + live animated demo (2026-07-06)
+
+A full visual redesign of the website (extension untouched), modeled on
+**auxia.io**: modern, sleek, editorial — deliberately not the generic
+"AI-generated site" look. Built the same way as Prompt 23: the main assistant
+set the design system and contracts, then **three parallel Claude Opus agents**
+rewrote the components (hero + demo / nav + footer + CTA / sections + modals)
+in ~96 seconds.
+
+**1. New canvas and type.**
+- Background is now the requested warm cream **`#f0efe3`**; text is near-black
+  ink, borders are hairlines, and blue stays scarce (CTAs, links, highlights).
+- Font family is now **`PP Neue Montreal, Arial, sans-serif`** as requested.
+  Note: PP Neue Montreal is a **commercial font** (Pangram Pangram) that can't
+  legally be hot-linked, so visitors see Arial until the licensed `.woff2`
+  files are dropped into `website/public/fonts/` — a ready-to-uncomment
+  `@font-face` block with instructions sits at the top of `src/index.css`.
+  The monospace stack from Prompt 23 remains for code and small labels.
+- The site is now **light-only**: the previous auto dark mode would have
+  replaced the cream with dark grey for dark-mode users, defeating the point.
+- Gradient text, glow blobs, and the dot grid are gone; big type, whitespace,
+  and hairline rules carry the design. Buttons are now ink-black pills that
+  turn blue on hover.
+
+**2. The hero is a live product demo.**
+The static terminal mock-up was replaced by `BrowserDemo.jsx`: a Mac-Safari
+window containing a mock LeetCode "Two Sum" page — problem description on the
+left, a dark code editor with a subtly buggy nested-loop solution on the
+right, and the extension's blue launcher pill floating at the bottom. Every
+16 seconds it plays the whole story: the Review button "clicks", the panel
+slides in, "Reviewing your code…" spins, then a NEEDS REVISION verdict, two
+edge-case faults (`nums = [3,3]`, the missing no-pair return) and two
+**Socratic hint questions** appear one by one — showing exactly what the
+first agent does: hints, never the answer. Technical notes: pure CSS
+keyframes (no JavaScript timers, so it can never drift or leak), honors
+"reduce motion" system settings by showing the finished state, and is marked
+decorative for screen readers with a hidden text description.
+
+**3. Emojis → icons.**
+Every emoji on the site (🧩 ⌨️ 🆚 📄 🛡️ 🤔 ✨ …) was replaced with thin-stroke
+**lucide-react** icons (Puzzle, Terminal, Code, FileText, Shield, HelpCircle,
+Sparkles, Copy, Download, X, ArrowRight, Plus, Lock). One wrinkle: the brand
+icon `Chrome` was removed from lucide v1, so the extension uses the `Puzzle`
+icon instead — and a find-and-replace that briefly renamed Chrome-the-browser
+to "Puzzle" in two sentences was caught and fixed before shipping.
+
+**Files touched:** `website/src/index.css` (new tokens + font-face note),
+`website/index.html` (theme-color), `website/package.json` (+ lucide-react),
+all 11 component files (10 rewritten, `BrowserDemo.jsx` new),
+`documentation.md` (§13, this entry). Extension files and `manifest.json`
+unchanged.
+
+**Verified:** `bun run build` succeeds (1,797 modules); a local preview
+returned HTTP 200 and the built bundle contains the cream color, the
+PP Neue Montreal stack, the demo keyframes, and the hero copy; an emoji scan
+of `website/src` finds zero emojis; all lucide icon names were checked against
+the installed package (that's how the missing `Chrome` was caught).
+
+**To see it:** `cd website`, then `bun run dev` — or push and let Vercel
+rebuild.
+
+### Prompt 26 — "Un-Doomed", real Safari chrome, clickable demo steps (2026-07-06)
+
+Five refinements from a design review of the new site, plus a brand tweak.
+
+**1. The name is now "Un-Doomed" (capital D).**
+Every place a person sees the name — the website, the extension popup, the
+on-page panel, the Settings page, the Chrome extension name, `agent.md`, the
+README — now spells it **Un-Doomed**. Technical identifiers stay lowercase on
+purpose (`undoomed` package, `undoomed_*` storage keys, file names): renaming
+those would break saved settings and installs for zero user benefit. Older
+Change Log entries keep the spelling they shipped with. Extension version →
+**1.5.2** (reload it to see the new name).
+
+**2. The demo's browser chrome now matches real Safari** (from the provided
+screenshot): traffic lights, sidebar toggle, back/forward chevrons, privacy
+shield, a centered address pill with the lock and a reload icon, and share /
+new-tab / tab-overview buttons on the right — all thin lucide icons.
+
+**3. The demo's code editor gained line numbers** (1–6 in a proper gutter),
+like a real editor.
+
+**4. A clickable step indicator sits under the demo** — four mono-label chips
+with a blue lightning bolt, threaded on a blue rail (modeled on the provided
+example): *Review requested → Analyzing code → Edge-case faults → Socratic
+hints*. The active chip is filled ink; clicking any chip jumps the animation
+to that exact step. To make that possible the demo was rebuilt from a fixed
+16-second CSS loop into a small React **state machine**: each step
+auto-advances after its duration, and a click simply sets the step (the timer
+re-arms from there). Reduced-motion users get the finished state with no
+auto-play — but the chips still respond.
+
+**5. Small polish:** selecting text anywhere on the site now highlights in the
+brand blue (`::selection`), and the "Install the CLI" button (plus the other
+outlined buttons) now fills blue on hover like the primary buttons do.
+
+**Files touched:** `website/src/components/BrowserDemo.jsx` (rebuilt),
+`Hero.jsx` / `Downloads.jsx` / `AgentModal.jsx` (hover fills), `index.css`
+(`::selection`), the rename across `website/src/**`, `website/index.html`,
+`agent.md` (all three copies), `popup.*`, `options.*`, `content.js`,
+`background.js`, `README.md`, and `manifest.json` (name + v1.5.2);
+`documentation.md` (§13, this entry).
+
+**Verified:** `bun run build` succeeds; the preview serves HTTP 200; the
+built bundle contains "Un-Doomed" (7×) and zero old-spelling leftovers, the
+step-chip labels, the Safari address pill, and the `::selection` rule; all
+extension JS passes Node syntax checks; `manifest.json` is valid at v1.5.2;
+every lucide icon name used was checked against the installed package.
+
+### Prompt 27 — The crossed-phone logo, LeetCode editor chrome, livelier sections (2026-07-06)
+
+A brand and polish pass across the site AND the extension, from a provided
+logo concept.
+
+**1. The new logo: a phone that spells "D", crossed out.**
+The provided concept — a phone whose body forms the letter **D** with a slash
+through it (doomscrolling, crossed out) — is now the product mark, drawn in
+the brand blue. It exists in three forms:
+- `website/src/components/LogoMark.jsx` — a reusable vector drawing (props:
+  size, stroke color, and a "knockout" color that must match the background,
+  which creates the clean gap around the slash);
+- new `icons/icon16/48/128.png` for the extension toolbar (blue mark on a
+  cream rounded square — rendered from the vector via a headless browser,
+  since no SVG rasterizer was installed);
+- inline drawings inside the extension's popup, Settings page, on-page panel
+  header, and the launcher pill (white version on the blue pill) — these use
+  CSS variables, so they recolor themselves in dark mode.
+
+**2. The header wordmark.** "Un-Doomed" in the nav (and footer) is now a
+logotype: the mark plus the name in semibold, with **"Doomed" struck through
+in blue** — the same slash story as the logo, so it's unmistakably a brand,
+not just a word.
+
+**3. The demo looks more like a real editor.** The code pane's header is now
+LeetCode-style: a "Code" label on the left and a **Python3 language selector**
+(with chevron) plus reset/maximize icons on the right — plus the line numbers
+from Prompt 26.
+
+**4. Step indicator: bolt → blinking dot.** The lightning bolt on the step
+chips is gone; the active chip now carries a small **blinking status dot**
+(soft blue on the filled chip), inactive chips a static muted dot. The blink
+stops for reduced-motion users.
+
+**5. "How it works" icons.** The three reviewers got better-fitting icons in
+hover-reactive bordered tiles: **Crosshair** (Edge-Case Executioner hunts
+faults), **MessageCircleQuestion** (Socratic Tutor asks), **Braces**
+(Clean-Code Critic reviews style). Tiles tint blue on hover.
+
+**6. FAQ is no longer static.** Rewritten from native disclosure elements to
+a controlled accordion: questions highlight on hover, the plus icon rotates
+into an ✕, and answers **slide open smoothly** (a CSS grid-rows animation —
+no JavaScript height measuring). One answer open at a time.
+
+**7. The extension now uses the website font** — `PP Neue Montreal, Arial,
+sans-serif` in the popup, Settings page, and on-page panel (falls back to
+Arial until the licensed font files exist; code stays in the mono stack).
+Extension version → **1.5.3**.
+
+**Files touched:** website — `LogoMark.jsx` (new), `BrowserDemo.jsx`,
+`Nav.jsx`, `Footer.jsx`, `HowItWorks.jsx`, `Faq.jsx`; extension —
+`popup.html/.css`, `options.html/.css`, `content.js`, `icons/*.png`,
+`manifest.json` (1.5.3); `documentation.md` (§6.2, §13, this entry).
+
+**Verified:** site builds; preview serves HTTP 200; the bundle contains the
+logo path, the Python3 selector, the blink keyframes, both wordmark strikes
+(nav + footer), and the FAQ animation classes; all extension JS passes Node
+syntax checks; the launcher's slash was caught rendering blue-on-blue during
+review and fixed to white; the regenerated 128px icon was visually inspected.
+
+**To get it:** reload the extension (new logo + font appear); site: `cd
+website && bun run dev` or redeploy.
+
+### Prompt 28 — Fix: "pip install undoomed" wrapped onto two lines (2026-07-06)
+
+Tiny layout fix on the website's CLI download card: the install command could
+wrap ("pip install / undoomed") when the card got narrow. The command now
+stays on **one line** (`whitespace-nowrap`, a slightly smaller size, and a
+truncation guard so extremes ellipsize instead of overflowing). File:
+`website/src/components/Downloads.jsx`. Verified with a fresh `bun run build`.
+
+### Prompt 29 — "How it works" becomes a zig-zag scroll journey + favicon fix (2026-07-06)
+
+The static three-column "How it works" grid was replaced with an
+**auxia.io-style scroll experience**, and the website favicon finally caught
+up with the new logo.
+
+**1. The scroll journey.**
+- A vertical **rail** runs through the section; as you scroll, it **fills
+  with blue** (the fill height is driven by scroll position, updated at most
+  once per frame).
+- The three reviewers are **stages pinned to the rail**, and they
+  **zig-zag**: stage 1 on the left, stage 2 on the right, stage 3 back on the
+  left, with the rail running down the center on desktop (on phones it's a
+  single column with the rail on the left). Each stage's node dot on the rail
+  turns blue and the content fades up the first time it scrolls into view.
+- Each stage is a blue pill (agent icon + name) + its description + a **live
+  looping demo card** showing what that agent actually does:
+  - **Edge-Case Executioner** — an "edge-case sweep" runs test inputs one by
+    one (`nums = []`, `[3,3]`, "no valid pair", the happy path) with ✗/✓
+    verdicts, ending on a "3 FAULTS FOUND" chip;
+  - **Socratic Tutor** — a chat: a typing indicator, then a question bubble,
+    more typing, a second question — closing on "ZERO CODE HANDED OVER";
+  - **Clean-Code Critic** — `O(n²)` gets struck through, `O(n)` lands in
+    blue, and a three-item style checklist ticks in.
+  All three demos share one 9-second clock with explicit per-element timing
+  windows, so every card resets cleanly (an earlier draft used staggered
+  delays, which would have let late elements linger into the next loop — 
+  caught and fixed before shipping). Reduced-motion users see the finished
+  state of each card.
+**2. Favicon fix (user-reported):** the site's browser-tab icon was still the
+old "?" tile because `website/public/icon48.png` had never been refreshed —
+it's now the crossed-phone logo. (Browsers cache favicons aggressively; a
+hard refresh or new tab may be needed to see it.)
+
+**Files touched:** `website/src/components/HowItWorks.jsx` (rebuilt),
+`website/public/icon48.png` (new logo). Extension unchanged.
+
+**Verified:** `bun run build` succeeds; preview serves HTTP 200; the bundle
+contains the rail-fill logic (`scaleY`), the IntersectionObserver, and all
+three demo cards' copy; the favicon file now byte-matches the extension's
+48px icon.

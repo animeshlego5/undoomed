@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⌁ Un-doomed
+# ⌁ Un-Doomed
 
 ### The Socratic AI code reviewer that makes you *think*.
 
@@ -16,13 +16,13 @@
 
 ---
 
-## Why "Un-doomed"?
+## Why "Un-Doomed"?
 
 Modern coding tools are happy to hand you the answer. That feels productive — until
 you realise you've shipped code you don't understand and learned nothing. That's the
 **doom**: stuck-and-frustrated on one side, copy-paste-and-clueless on the other.
 
-**Un-doomed refuses to write your fix.** Instead it reviews your code the way a great
+**Un-Doomed refuses to write your fix.** Instead it reviews your code the way a great
 mentor would, and guides you with **questions** until *you* find the bug. It's an
 antidote to doomscrolling for developers: less passive consumption, more active
 thinking.

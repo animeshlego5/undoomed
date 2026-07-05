@@ -1,5 +1,5 @@
 // =============================================================================
-// config.js — Un-doomed shared client configuration.
+// config.js — Un-Doomed shared client configuration.
 // Loaded by popup.html and options.html (before their own scripts) AND imported
 // by the background service worker (background.js) via importScripts, so it is
 // the single source of truth for where the backend lives.

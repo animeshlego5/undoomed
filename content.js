@@ -1,5 +1,5 @@
 // =============================================================================
-// content.js — Un-doomed scraper + ON-PAGE controls + results OVERLAY.
+// content.js — Un-Doomed scraper + ON-PAGE controls + results OVERLAY.
 // =============================================================================
 //
 // Runs in the extension's isolated world (shares the page DOM, but cannot touch
@@ -188,8 +188,7 @@
       --pre-bg: #1c1c21;
       --pre-ink: #e4e4e7;
       --shadow: rgba(24,24,27,.18);
-      font: 14px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-        Helvetica, Arial, sans-serif;
+      font: 14px/1.55 "PP Neue Montreal", Arial, sans-serif;
     }
     .ui--dark {
       --surface: #232327;
@@ -249,8 +248,7 @@
     }
     .phead__l { display: flex; align-items: center; gap: 10px; min-width: 0; }
     .mark {
-      width: 28px; height: 28px; border-radius: 8px; background: var(--ink);
-      color: var(--surface); display: grid; place-items: center; font-size: 15px; font-weight: 700; flex: 0 0 auto;
+      width: 28px; height: 28px; display: grid; place-items: center; flex: 0 0 auto;
     }
     .pname { font-size: 14.5px; font-weight: 650; }
     .pmeta { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -369,17 +367,17 @@
       "<style>" + STYLE + "</style>" +
       '<div class="ui">' +
       '  <div class="launch" id="ud-launch">' +
-      '    <button class="launch__toggle" id="ud-toggle" title="Open/close Un-doomed">' +
-      "      <span>&#9097; Un-doomed</span><span class=\"launch__badge\" id=\"ud-badge\" hidden></span>" +
+      '    <button class="launch__toggle" id="ud-toggle" title="Open/close Un-Doomed">' +
+      '<svg width="15" height="15" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M37 16 H50 C73 16 84 31 84 50 C84 69 73 84 50 84 H37 Q28 84 28 75 V25 Q28 16 37 16 Z" style="stroke:#ffffff" stroke-width="8" stroke-linejoin="round"/><path d="M45 27 H58" style="stroke:#ffffff" stroke-width="5.5" stroke-linecap="round"/><circle cx="50.5" cy="71.5" r="4" style="fill:#ffffff"/><path d="M13 31 L91 80" style="stroke:var(--accent)" stroke-width="18" stroke-linecap="round"/><path d="M13 31 L91 80" style="stroke:#ffffff" stroke-width="8" stroke-linecap="round"/></svg><span>Un-Doomed</span><span class="launch__badge" id="ud-badge" hidden></span>' +
       "    </button>" +
       '    <button class="launch__review" id="ud-review-quick" title="Request a Socratic review">Review</button>' +
       "  </div>" +
-      '  <aside class="panel panel--right" id="ud-panel" role="dialog" aria-label="Un-doomed review">' +
+      '  <aside class="panel panel--right" id="ud-panel" role="dialog" aria-label="Un-Doomed review">' +
       '    <div class="phead">' +
       '      <div class="phead__l">' +
-      '        <div class="mark">&#9097;</div>' +
+      '        <div class="mark"><svg width="26" height="26" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M37 16 H50 C73 16 84 31 84 50 C84 69 73 84 50 84 H37 Q28 84 28 75 V25 Q28 16 37 16 Z" style="stroke:var(--accent)" stroke-width="8" stroke-linejoin="round"/><path d="M45 27 H58" style="stroke:var(--accent)" stroke-width="5.5" stroke-linecap="round"/><circle cx="50.5" cy="71.5" r="4" style="fill:var(--accent)"/><path d="M13 31 L91 80" style="stroke:var(--surface)" stroke-width="18" stroke-linecap="round"/><path d="M13 31 L91 80" style="stroke:var(--accent)" stroke-width="8" stroke-linecap="round"/></svg></div>' +
       '        <div style="min-width:0">' +
-      '          <div class="pname">Un-doomed</div>' +
+      '          <div class="pname">Un-Doomed</div>' +
       '          <div class="pmeta" id="ud-meta">Hints, not answers.</div>' +
       "        </div>" +
       "      </div>" +

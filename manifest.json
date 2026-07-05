@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Un-doomed — Socratic Reviewer",
-  "version": "1.5.1",
-  "description": "Get Socratic hints (never the answer) on your LeetCode solution, then a style review once the logic is clean. Talks to your local Un-doomed API.",
+  "name": "Un-Doomed — Socratic Reviewer",
+  "version": "1.5.3",
+  "description": "Get Socratic hints (never the answer) on your LeetCode solution, then a style review once the logic is clean. Talks to your local Un-Doomed API.",
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
@@ -20,7 +20,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Un-doomed Socratic Review",
+    "default_title": "Un-Doomed Socratic Review",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",

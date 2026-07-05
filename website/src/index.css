@@ -93,6 +93,12 @@ html {
   outline-offset: 2px;
 }
 
+/* Text selection uses the brand blue. */
+::selection {
+  background: #2563eb;
+  color: #ffffff;
+}
+
 /* Respect users who prefer no motion. */
 @media (prefers-reduced-motion: reduce) {
   .reveal,

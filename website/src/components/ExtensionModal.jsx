@@ -1,4 +1,4 @@
-import { Chrome, Download, X } from "lucide-react";
+import { Puzzle, Download, X } from "lucide-react";
 import Modal from "./Modal";
 
 export default function ExtensionModal({ open, onClose }) {
@@ -8,7 +8,7 @@ export default function ExtensionModal({ open, onClose }) {
         <div className="flex items-start justify-between gap-4 border-b border-line px-6 py-5">
           <div className="flex items-center gap-3">
             <span className="grid h-10 w-10 place-items-center rounded-lg bg-accent text-white">
-              <Chrome size={18} strokeWidth={1.5} />
+              <Puzzle size={18} strokeWidth={1.5} />
             </span>
             <div>
               <h3

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Chrome, Terminal, Code, FileText, ArrowRight } from "lucide-react";
+import { Puzzle, Terminal, Code, FileText, ArrowRight } from "lucide-react";
 
 export default function Downloads({ onOpenExtension, onOpenAgent }) {
   const [copyLabel, setCopyLabel] = useState("Copy");
@@ -40,7 +40,7 @@ export default function Downloads({ onOpenExtension, onOpenAgent }) {
         <article className="flex flex-col rounded-2xl border border-line bg-card p-6 transition-colors hover:border-ink/40">
           <div className="flex items-center justify-between">
             <div className="grid h-10 w-10 place-items-center rounded-lg border border-line">
-              <Chrome size={18} strokeWidth={1.5} />
+              <Puzzle size={18} strokeWidth={1.5} />
             </div>
             <span className="rounded-full border border-accent/40 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.15em] text-accent">
               Available
@@ -79,8 +79,10 @@ export default function Downloads({ onOpenExtension, onOpenAgent }) {
             Review any file from your terminal:{" "}
             <code className="font-mono text-[12px]">undoom check app.py</code>
           </p>
-          <div className="mt-5 flex items-center justify-between gap-2 rounded-lg border border-line bg-surface px-3 py-2.5">
-            <code className="font-mono text-[13px]">pip install undoomed</code>
+          <div className="mt-5 flex items-center justify-between gap-2 overflow-hidden rounded-lg border border-line bg-surface px-3 py-2.5">
+            <code className="truncate whitespace-nowrap font-mono text-[12px]">
+              pip install undoomed
+            </code>
             <button
               type="button"
               onClick={handleCopy}
@@ -129,13 +131,13 @@ export default function Downloads({ onOpenExtension, onOpenAgent }) {
             Claude <code className="font-mono text-[13px]">agent.md</code>
           </h3>
           <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">
-            A drop-in agent spec so Claude Code and Cursor review the Un-doomed
+            A drop-in agent spec so Claude Code and Cursor review the Un-Doomed
             way.
           </p>
           <button
             type="button"
             onClick={onOpenAgent}
-            className="mt-5 inline-flex items-center justify-center rounded-full border border-ink/25 px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:border-ink"
+            className="mt-5 inline-flex items-center justify-center rounded-full border border-ink/25 px-5 py-2.5 text-sm font-medium text-ink transition-colors hover:border-accent hover:bg-accent hover:text-white"
           >
             View instructions
           </button>
