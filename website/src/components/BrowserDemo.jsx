@@ -315,35 +315,52 @@ export default function BrowserDemo() {
         </div>
       </div>
 
-      {/* ---- Step indicator: chips on a blue rail, click to jump ---- */}
+      {/* ---- Step indicator: a progress rail — blue up to the current step,
+              light beyond it — with clickable chips ---- */}
       <div className="relative mt-7">
         <div
           aria-hidden="true"
-          className="absolute left-0 right-0 top-1/2 hidden h-[2px] -translate-y-1/2 bg-accent sm:block"
+          className="absolute left-0 right-0 top-1/2 hidden h-[2px] -translate-y-1/2 bg-line sm:block"
+        />
+        <div
+          aria-hidden="true"
+          style={{ width: `${(step / (STEPS.length - 1)) * 100}%` }}
+          className="absolute left-0 top-1/2 hidden h-[2px] -translate-y-1/2 bg-accent transition-[width] duration-500 ease-out sm:block"
         />
         <div className="relative flex flex-wrap items-center justify-center gap-2 sm:flex-nowrap sm:justify-between">
-          {STEPS.map((s, i) => (
-            <button
-              key={s.label}
-              type="button"
-              onClick={() => setStep(i)}
-              aria-label={`Show demo step ${i + 1}: ${s.label}`}
-              aria-current={step === i ? "step" : undefined}
-              className={
-                "flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-colors " +
-                (step === i
-                  ? "border-ink bg-ink text-surface"
-                  : "border-line bg-card text-muted hover:border-ink/40 hover:text-ink")
-              }
-            >
-              {step === i ? (
-                <span className="bd-blink h-1.5 w-1.5 rounded-full bg-[#8ab4f8]" />
-              ) : (
-                <span className="h-1.5 w-1.5 rounded-full bg-muted/40" />
-              )}
-              {s.label}
-            </button>
-          ))}
+          {STEPS.map((s, i) => {
+            const reached = i < step;
+            const active = i === step;
+            return (
+              <button
+                key={s.label}
+                type="button"
+                onClick={() => setStep(i)}
+                aria-label={`Show demo step ${i + 1}: ${s.label}`}
+                aria-current={active ? "step" : undefined}
+                className={
+                  "flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 font-mono text-[10px] uppercase tracking-[0.14em] transition-colors " +
+                  (active
+                    ? "border-ink bg-ink text-surface"
+                    : reached
+                      ? "border-accent/40 bg-card text-ink hover:border-accent"
+                      : "border-line bg-card text-muted hover:border-ink/40 hover:text-ink")
+                }
+              >
+                {active ? (
+                  <span className="bd-blink h-1.5 w-1.5 rounded-full bg-[#8ab4f8]" />
+                ) : (
+                  <span
+                    className={
+                      "h-1.5 w-1.5 rounded-full " +
+                      (reached ? "bg-accent" : "bg-muted/40")
+                    }
+                  />
+                )}
+                {s.label}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
