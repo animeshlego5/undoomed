@@ -1866,6 +1866,23 @@ The rest of the README (quick start, backend deploy, the three-reviewer
 explanation) was already accurate and left untouched. File: `README.md`
 (and this Change Log entry).
 
+### Prompt 39 — Footer credit + GitHub links (2026-07-06)
+
+Added two links to the site footer's right-hand column: **"Built by
+Animesh"** (linking to the portfolio at `animeshlego5.github.io`) and a
+**GitHub** link to the repo (`github.com/animeshlego5/undoomed`). Both open
+in a new tab, use `rel="noopener noreferrer"`, and match the site's muted
+style with an accent-blue hover. File: `website/src/components/Footer.jsx`.
+
+### Prompt 40 — Balanced the footer (2026-07-06)
+
+Rebalanced the footer so the two sides carry equal weight. **"Hints, not
+answers."** moved from the right column to the LEFT, sitting directly under
+the logo/wordmark. The right column now holds just the two lines that belong
+together — "Built for people who'd rather understand." and the "Built by
+Animesh · GitHub" credit. Columns now align at the top (`sm:items-start`).
+File: `website/src/components/Footer.jsx`.
+
 ### Prompt 38 — Why the on-page panel still showed the OLD logo (2026-07-06)
 
 No code change — a diagnosis. The user reported that the extension's on-page
@@ -2216,3 +2233,55 @@ sidebar.
 **Files touched:** `website/src/components/BrowserDemo.jsx`;
 `documentation.md` (this entry). Verified: fresh build + screenshot shows
 the dark pane, teal chip, code chips, and the struck wordmark in the panel.
+
+### Prompt 46 — Fix: hero headline nudged left on "shipping." (2026-07-06)
+
+**The symptom:** the hero headline shifted slightly left whenever the typed
+accent word reached "shipping."
+
+**The cause:** the accent word sits in a grid slot with invisible copies of all
+four words stacked behind it, so the slot is pre-sized to the widest word and
+typing doesn't reflow the centered headline. But those sizer copies reserved
+only the *word* — not the blinking **caret** after it (`ml-1` + a 3px bar ≈ 7px).
+So the reserved width = widest word, while the live line = word **+ caret**. For
+the widest word ("shipping."), word+caret overflowed the reserved slot, the grid
+cell grew ~7px, and because the headline block is centered, growing it pushed its
+left edge leftward — a visible nudge, only on the widest word.
+
+**The fix:** each invisible sizer now also reserves the caret's width (a matching
+`ml-1 w-[3px]` spacer), so the slot is sized to *widest word + caret*. The live
+word+caret can no longer exceed it, so the block width is constant and nothing
+shifts. File: `website/src/components/Hero.jsx`.
+
+**Verified empirically:** rebuilt, then screenshotted the running build at two
+moments — "building." fully typed and "shipping." fully typed (caret visible
+after the period). Measured the headline's left edge in both: **x = 567 in both**
+(previously it moved on "shipping."). No shift.
+
+### Prompt 45 — The step indicator is now a real progress bar (2026-07-06)
+
+The demo's step rail used to be blue end-to-end. Now it reads as progress:
+
+- The rail is **two-layered** — a light base line across the full width, with
+  a **blue fill that grows to the active chip** (animated over 500ms, so it
+  sweeps forward as the demo advances and snaps back when the loop restarts
+  or a chip is clicked).
+- **Chips show state too:** steps already passed get a solid blue dot and a
+  blue-tinted border; the active step stays ink-filled with the blinking
+  dot; steps not reached yet stay muted with a light border.
+
+File: `website/src/components/BrowserDemo.jsx`. Verified by sampling pixel
+colors along the rail in a screenshot of the running build — blue before the
+active chip, light grey after it.
+
+### Prompt 46 — Demo panel header aligned like the VS Code sidebar (2026-07-06)
+
+In the hero demo's review panel, the "Un-Doomed" title floated centered
+above its tagline instead of both lines starting flush left beside the logo
+(the provided VS Code sidebar screenshot was the reference). Root cause: the
+whole demo inherits the hero's centered text alignment, and the header's
+text block was the one element without an explicit left-align override — so
+the shorter title line centered itself over the wider tagline. One
+`text-left` on that block fixes it; title, tagline, and logo now align
+exactly like the reference. File: `website/src/components/BrowserDemo.jsx`;
+verified with before/after screenshots of the running build.

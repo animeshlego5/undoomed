@@ -238,7 +238,7 @@ export default function BrowserDemo() {
           >
             <div className="flex items-center gap-2.5 border-b border-line p-3.5">
               <LogoMark size={26} knockout="#faf9f2" />
-              <div className="leading-tight">
+              <div className="text-left leading-tight">
                 <div className="text-[13px] font-semibold tracking-tight">
                   Un-
                   <span className="line-through decoration-accent decoration-2">
