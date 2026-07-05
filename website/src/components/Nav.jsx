@@ -1,4 +1,5 @@
 import LogoMark from "./LogoMark.jsx";
+import Wordmark from "./Wordmark.jsx";
 
 export default function Nav() {
   return (
@@ -6,9 +7,7 @@ export default function Nav() {
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
         <a href="#top" className="flex items-center gap-2.5">
           <LogoMark size={30} />
-          <span className="text-[17px] font-semibold tracking-tight">
-            Un-<span className="line-through decoration-accent decoration-2">Doomed</span>
-          </span>
+          <Wordmark className="text-[17px]" />
         </a>
         <div className="hidden items-center gap-8 text-sm text-muted md:flex">
           <a href="#how" className="transition-colors hover:text-ink">How it works</a>
