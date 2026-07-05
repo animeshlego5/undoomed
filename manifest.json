@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Un-Doomed — Socratic Reviewer",
-  "version": "1.5.3",
+  "version": "1.6.0",
   "description": "Get Socratic hints (never the answer) on your LeetCode solution, then a style review once the logic is clean. Talks to your local Un-Doomed API.",
   "icons": {
     "16": "icons/icon16.png",
