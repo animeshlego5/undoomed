@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- VS Code uses activity-bar icons as alpha masks, so the gap around the
+       slash must be real transparency (an SVG mask), not painted background. -->
+  <defs>
+    <mask id="gap">
+      <rect width="100" height="100" fill="white" />
+      <path d="M13 31 L91 80" stroke="black" stroke-width="18" stroke-linecap="round" />
+    </mask>
+  </defs>
+  <g mask="url(#gap)" fill="none">
+    <path d="M37 16 H50 C73 16 84 31 84 50 C84 69 73 84 50 84 H37 Q28 84 28 75 V25 Q28 16 37 16 Z"
+          stroke="#000000" stroke-width="8" stroke-linejoin="round" />
+    <path d="M45 27 H58" stroke="#000000" stroke-width="5.5" stroke-linecap="round" />
+    <circle cx="50.5" cy="71.5" r="4" fill="#000000" />
+  </g>
+  <path d="M13 31 L91 80" stroke="#000000" stroke-width="8" stroke-linecap="round" />
+</svg>

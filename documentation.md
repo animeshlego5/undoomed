@@ -1745,3 +1745,55 @@ CLI:
 **To test the VS Code extension:** open the `vscode-extension` folder in VS
 Code and press **F5** (see §16 of this doc and the extension's README for
 packaging and publishing).
+
+### Prompt 32 — VS Code sidebar presence + smooth card hover (2026-07-06)
+
+**1. The VS Code extension now lives in the Activity Bar** (the icon strip on
+VS Code's left edge), like Claude Code does:
+- A new **Un-Doomed icon** appears in the Activity Bar. VS Code uses these
+  icons as alpha *masks* (it repaints them in the theme color), so the
+  crossed-phone mark needed a real SVG mask for the slash gap instead of a
+  painted-over background — that's the new `media/mark.svg`.
+- Clicking it opens a **sidebar panel**: the logo + wordmark, a blue
+  **Request Socratic Review** button, quick actions for setting the per-file
+  task and the API key, and — after a review — the **last verdict** (file
+  name, APPROVED/NEEDS REVISION pill, fault count, attempt number) with a
+  "Reopen review panel" button. It's a webview view that styles itself with
+  VS Code's own theme variables, so it looks native in any theme.
+- The **review tab in the editor now carries the Un-Doomed icon** (the
+  panel's `iconPath`), so it reads as a branded tab like the screenshot.
+
+**2. Website: the download-card hover no longer jitters.** The scale-on-hover
+now runs on the GPU (`transform-gpu` + `will-change-transform` promote each
+card to its own compositor layer, so the browser stops re-rasterizing the
+text every frame) with a slightly gentler 1.02 scale and a smoother 300ms
+ease-out.
+
+**Files touched:** `vscode-extension/package.json` (viewsContainers + views),
+`vscode-extension/extension.js` (UndoomedViewProvider, tab icon, sidebar
+updates), `vscode-extension/media/mark.svg` (new), website `Downloads.jsx`
+(hover fix); `documentation.md` (this entry).
+
+**Verified:** `extension.js` passes a Node syntax check; `package.json` is
+valid JSON; the site rebuilds cleanly. To see the sidebar: reopen the
+`vscode-extension` folder and press **F5**, then click the Un-Doomed icon in
+the Activity Bar of the development window.
+
+### Prompt 33 — Settings button in the VS Code sidebar (2026-07-06)
+
+Quick follow-up: the sidebar had no way to reach the provider/model settings.
+A new **"Settings — provider · model · server"** button in the Un-Doomed
+sidebar opens VS Code's Settings pre-filtered to the `undoomed.*` options
+(provider, model, server URL, server secret). The API key still uses its own
+button because it goes to secret storage, not settings. File:
+`vscode-extension/extension.js`; verified with a Node syntax check.
+
+### Prompt 34 — Clarification: where VS Code review results appear (2026-07-06)
+
+No code change — a question about the VS Code extension's layout. Answer:
+results open in a **reusable editor tab beside your code** (branded with the
+Un-Doomed icon), because hints are meant to be read next to the code being
+fixed. The **sidebar** is the launcher/status surface: action buttons,
+settings shortcuts, and a compact summary of the last verdict with a
+"Reopen review panel" button. Rendering the full review inside the sidebar
+was offered as an optional future tweak.

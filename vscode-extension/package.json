@@ -14,6 +14,26 @@
   "main": "./extension.js",
   "activationEvents": [],
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "undoomed",
+          "title": "Un-Doomed",
+          "icon": "media/mark.svg"
+        }
+      ]
+    },
+    "views": {
+      "undoomed": [
+        {
+          "type": "webview",
+          "id": "undoomed.home",
+          "name": "Socratic Review",
+          "icon": "media/mark.svg",
+          "contextualTitle": "Un-Doomed"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "undoomed.review",

@@ -13,6 +13,102 @@ const vscode = require("vscode");
 const crypto = require("crypto");
 
 let panel = null; // single results webview, reused across reviews
+let sidebar = null; // the activity-bar view provider (set in activate)
+
+// The brand mark, theme-agnostic: an SVG mask carves the slash gap, so it
+// works on any background (sidebar, light or dark).
+const LOGO_SVG = `<svg width="30" height="30" viewBox="0 0 100 100" aria-hidden="true">
+  <defs><mask id="udgap"><rect width="100" height="100" fill="white"/>
+  <path d="M13 31 L91 80" stroke="black" stroke-width="18" stroke-linecap="round"/></mask></defs>
+  <g mask="url(#udgap)" fill="none">
+    <path d="M37 16 H50 C73 16 84 31 84 50 C84 69 73 84 50 84 H37 Q28 84 28 75 V25 Q28 16 37 16 Z" stroke="#2563eb" stroke-width="8" stroke-linejoin="round"/>
+    <path d="M45 27 H58" stroke="#2563eb" stroke-width="5.5" stroke-linecap="round"/>
+    <circle cx="50.5" cy="71.5" r="4" fill="#2563eb"/>
+  </g>
+  <path d="M13 31 L91 80" stroke="#2563eb" stroke-width="8" stroke-linecap="round"/>
+</svg>`;
+
+// ---- Activity-bar sidebar view: brand, actions, and the last verdict ---------
+class UndoomedViewProvider {
+  constructor() {
+    this.view = null;
+    this.last = null; // { data, fileName }
+  }
+
+  resolveWebviewView(view) {
+    this.view = view;
+    view.webview.options = { enableScripts: true };
+    view.webview.html = this.html();
+    view.webview.onDidReceiveMessage((m) => {
+      if (!m) return;
+      if (m.type === "review") vscode.commands.executeCommand("undoomed.review");
+      if (m.type === "setKey") vscode.commands.executeCommand("undoomed.setApiKey");
+      if (m.type === "setTask") vscode.commands.executeCommand("undoomed.setTask");
+      if (m.type === "openSettings")
+        vscode.commands.executeCommand("workbench.action.openSettings", "undoomed.");
+      if (m.type === "openLast" && this.last && panel) panel.reveal(undefined, true);
+    });
+  }
+
+  update(data, fileName) {
+    this.last = { data, fileName };
+    if (this.view) this.view.webview.html = this.html();
+  }
+
+  html() {
+    let lastHtml = "";
+    if (this.last) {
+      const d = this.last.data;
+      const status = d.status || "pending";
+      const label =
+        status === "approved" ? "APPROVED" : status === "needs_revision" ? "NEEDS REVISION" : "PENDING";
+      const bg = status === "approved" ? "#2563eb" : "var(--vscode-foreground)";
+      const fg = "var(--vscode-sideBar-background, #ffffff)";
+      const faults = Array.isArray(d.edge_case_faults) ? d.edge_case_faults.length : 0;
+      lastHtml = `
+        <div class="last">
+          <div class="lfile">${esc(this.last.fileName)}</div>
+          <span class="pill" style="background:${bg};color:${fg}">${label}</span>
+          <span class="faults">${faults ? faults + " fault" + (faults > 1 ? "s" : "") : "no faults"} · attempt #${Number(d.loop_count) || 0}</span>
+          <button class="ghost" onclick="post('openLast')">Reopen review panel</button>
+        </div>`;
+    }
+    return `<!DOCTYPE html><html><head><meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline';">
+<style>
+  body { font-family: var(--vscode-font-family); color: var(--vscode-foreground); padding: 12px 14px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .name { font-weight: 600; font-size: 13px; }
+  .name .strike { text-decoration: line-through; text-decoration-color: #2563eb; text-decoration-thickness: 2px; }
+  .tag { font-size: 11px; opacity: .65; }
+  button { display: block; width: 100%; border: 0; border-radius: 999px; padding: 8px 12px; margin-top: 8px;
+           background: #2563eb; color: #fff; font-weight: 600; font-size: 12px; cursor: pointer; font-family: inherit; }
+  button:hover { background: #1d4ed8; }
+  button.ghost { background: transparent; color: var(--vscode-foreground); font-weight: 500;
+                 border: 1px solid var(--vscode-widget-border, rgba(128,128,128,.35)); }
+  button.ghost:hover { border-color: #2563eb; color: #2563eb; }
+  .actions { margin-top: 14px; }
+  .last { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--vscode-widget-border, rgba(128,128,128,.35)); font-size: 12px; }
+  .lfile { font-family: var(--vscode-editor-font-family, monospace); font-size: 11px; opacity: .8; margin-bottom: 6px; }
+  .pill { display: inline-block; border-radius: 999px; padding: 2px 9px; font-size: 9px; letter-spacing: .12em;
+          font-family: var(--vscode-editor-font-family, monospace); }
+  .faults { display: block; margin-top: 6px; opacity: .7; font-size: 11px; }
+</style></head><body>
+  <div class="brand">${LOGO_SVG}
+    <div><div class="name">Un-<span class="strike">Doomed</span></div>
+    <div class="tag">Hints, not answers.</div></div>
+  </div>
+  <div class="actions">
+    <button onclick="post('review')">Request Socratic Review</button>
+    <button class="ghost" onclick="post('setTask')">Set task for this file</button>
+    <button class="ghost" onclick="post('setKey')">Set API key</button>
+    <button class="ghost" onclick="post('openSettings')">Settings — provider · model · server</button>
+  </div>
+  ${lastHtml}
+  <script>const vsapi = acquireVsCodeApi(); function post(type){ vsapi.postMessage({ type }); }</script>
+</body></html>`;
+  }
+}
 
 function cfg() {
   const c = vscode.workspace.getConfiguration("undoomed");
@@ -127,7 +223,7 @@ function renderHtml(data, fileName) {
 </body></html>`;
 }
 
-function showPanel(data, doc) {
+function showPanel(data, doc, context) {
   const fileName = doc.uri.path.split("/").pop() || "file";
   if (!panel) {
     panel = vscode.window.createWebviewPanel(
@@ -136,6 +232,8 @@ function showPanel(data, doc) {
       { viewColumn: vscode.ViewColumn.Beside, preserveFocus: true },
       { enableScripts: false }
     );
+    // The editor tab carries the brand mark, like Claude Code's tabs do.
+    panel.iconPath = vscode.Uri.joinPath(context.extensionUri, "media", "mark.svg");
     panel.onDidDispose(() => {
       panel = null;
     });
@@ -143,6 +241,7 @@ function showPanel(data, doc) {
   panel.title = "Un-Doomed — " + fileName;
   panel.webview.html = renderHtml(data, fileName);
   panel.reveal(vscode.ViewColumn.Beside, true);
+  if (sidebar) sidebar.update(data, fileName);
 }
 
 async function requestReview(context) {
@@ -219,7 +318,7 @@ async function requestReview(context) {
         return;
       }
       const data = await res.json();
-      showPanel(data, doc);
+      showPanel(data, doc, context);
     }
   );
 }
@@ -262,7 +361,11 @@ async function setApiKey(context) {
 }
 
 function activate(context) {
+  sidebar = new UndoomedViewProvider();
   context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider("undoomed.home", sidebar, {
+      webviewOptions: { retainContextWhenHidden: true },
+    }),
     vscode.commands.registerCommand("undoomed.review", () => requestReview(context)),
     vscode.commands.registerCommand("undoomed.setTask", () => setTask(context)),
     vscode.commands.registerCommand("undoomed.setApiKey", () => setApiKey(context))

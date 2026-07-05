@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Puzzle, Terminal, Code, FileText, ArrowRight } from "lucide-react";
 
 // Every card shares the same hover: a slight lift-by-scale + darker border.
+// transform-gpu + will-change promote the card to its own compositor layer,
+// so the scale animates without re-rasterizing text every frame (no jitter).
 const CARD =
-  "flex flex-col rounded-2xl border border-line bg-card p-6 transition-[transform,border-color] duration-200 hover:scale-[1.03] hover:border-ink/40";
+  "flex flex-col rounded-2xl border border-line bg-card p-6 transform-gpu will-change-transform transition-[transform,border-color] duration-300 ease-out hover:scale-[1.02] hover:border-ink/40";
 
 export default function Downloads({ onOpenExtension, onOpenAgent, onOpenVsCode }) {
   const [copyLabel, setCopyLabel] = useState("Copy");
