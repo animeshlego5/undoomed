@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+/* -----------------------------------------------------------------------------
+   PP Neue Montreal is a commercial typeface (Pangram Pangram) and cannot be
+   bundled or CDN-linked without a license. Until the .woff2 files are added,
+   the site gracefully falls back to Arial. To activate the real face:
+   1. Put your licensed files in website/public/fonts/
+      (PPNeueMontreal-Book.woff2, -Medium.woff2, -Bold.woff2)
+   2. Uncomment this block.
+
+@font-face {
+  font-family: "PP Neue Montreal";
+  src: url("/fonts/PPNeueMontreal-Book.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "PP Neue Montreal";
+  src: url("/fonts/PPNeueMontreal-Medium.woff2") format("woff2");
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: "PP Neue Montreal";
+  src: url("/fonts/PPNeueMontreal-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+----------------------------------------------------------------------------- */
+
+/* =============================================================================
+   Un-doomed design tokens — warm cream canvas, near-black ink, one blue accent.
+   Editorial and sleek: borders and typography carry the design, not shadows.
+   Light-only by design: the cream (#f0efe3) IS the brand surface.
+   ============================================================================= */
+
+@theme {
+  --color-surface: #f0efe3; /* the page — warm cream */
+  --color-card: #faf9f2; /* raised panels — slightly lighter cream */
+  --color-ink: #161613; /* near-black warm ink */
+  --color-muted: #6f6d61; /* secondary text — warm grey */
+  --color-line: #dcd9c8; /* hairline borders */
+  --color-accent: #2563eb; /* THE blue — reserved for what matters */
+  --color-accent-dark: #1d4ed8;
+  --color-accent-soft: #e4e9f7; /* soft blue tint that sits on cream */
+
+  --font-sans: "PP Neue Montreal", Arial, sans-serif;
+  --font-mono: Monaco, Menlo, "Ubuntu Mono", Consolas, "source-code-pro",
+    monospace;
+}
+
+body {
+  background-color: #f0efe3;
+  color: #161613;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Frosted sticky header on cream */
+.glass {
+  backdrop-filter: saturate(160%) blur(10px);
+  background: color-mix(in srgb, #f0efe3 82%, transparent);
+}
+
+/* Entrance motion */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.reveal {
+  animation: fadeUp 0.7s ease both;
+}
+.reveal-2 {
+  animation: fadeUp 0.7s ease 0.1s both;
+}
+.reveal-3 {
+  animation: fadeUp 0.7s ease 0.2s both;
+}
+
+/* Keyboard focus is always visible — and always blue. */
+:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Respect users who prefer no motion. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-2,
+  .reveal-3 {
+    animation: none;
+  }
+}

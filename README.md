@@ -123,8 +123,9 @@ Then point the clients at it:
   (`window.UNDOOMED_API_BASE_URL`).
 - **CLI** → `export UNDOOMED_API_URL=https://your-backend.onrender.com`.
 
-The landing page ([`index.html`](index.html)) deploys to **Vercel** as a static site
-(`vercel.json` + `.vercelignore` keep the Python backend out of the build).
+The landing page ([`website/`](website/)) is a Vite + React + Tailwind v4 app built
+with **Bun** and deployed to **Vercel** (`vercel.json` builds it; `.vercelignore`
+keeps the Python backend out of the deploy).
 
 ---
 
@@ -135,7 +136,7 @@ src/undoomed/      backend package (reviewers + FastAPI + CLI)
 manifest.json …    browser extension (popup, options, content scripts)
 config.js          single place to set the backend URL for the extension
 agent.md           drop-in rules for Claude Code / Cursor
-index.html         marketing landing page (Tailwind)
+website/           marketing landing page (Vite + React + Tailwind v4, via Bun)
 Dockerfile         backend container for Render/Railway
 documentation.md   the full, plain-English deep dive
 ```

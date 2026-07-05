@@ -17,6 +17,12 @@
       </header>
 
       <form id="settings-form" class="card">
+        <!-- Live server health: dot + label, click to re-check -->
+        <button type="button" id="health" class="health" title="Click to re-check the server">
+          <span class="health__dot" aria-hidden="true"></span>
+          <span id="health-text">Checking server&hellip;</span>
+        </button>
+
         <label class="field" for="provider">
           <span class="field__label">AI provider</span>
           <select id="provider" class="field__input">

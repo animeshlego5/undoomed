@@ -18,6 +18,15 @@
 const btn = document.getElementById("review-btn");
 const statusEl = document.getElementById("status");
 const threadEl = document.getElementById("thread");
+const settingsBtn = document.getElementById("open-settings");
+
+// Per-provider default model — display only; real defaults live in the backend.
+const DEFAULT_MODELS = {
+  openai: "gpt-4o-mini",
+  anthropic: "claude-opus-4-8",
+  gemini: "gemini-2.5-flash",
+  deepseek: "deepseek-chat",
+};
 
 function slugFromUrl(url) {
   const m = /leetcode\.com\/problems\/([^/?#]+)/.exec(url || "");
@@ -77,9 +86,26 @@ async function requestReview() {
 
 btn.addEventListener("click", requestReview);
 
-document.getElementById("open-settings").addEventListener("click", () => {
+settingsBtn.addEventListener("click", () => {
   chrome.runtime.openOptionsPage();
 });
+
+// Footer settings link doubles as a label: show which provider · model the
+// next review will use (same as the on-page panel footer).
+(async () => {
+  try {
+    const s = await chrome.storage.local.get(["undoomed_provider", "undoomed_model"]);
+    const provider = s.undoomed_provider || "openai";
+    const model =
+      s.undoomed_model && s.undoomed_model.trim()
+        ? s.undoomed_model.trim()
+        : DEFAULT_MODELS[provider] || "default";
+    settingsBtn.textContent = "⚙ " + provider + " · " + model;
+    settingsBtn.title = "Provider: " + provider + " · Model: " + model + " — click to change";
+  } catch (_) {
+    /* keep the plain "Settings" label */
+  }
+})();
 
 // Footer: show the current problem (short + readable), not the raw thread id.
 (async () => {

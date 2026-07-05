@@ -167,32 +167,68 @@
   // -------------------------------------------------------------------------
   const TOP_OFFSET = 56; // clears LeetCode's top navigation bar
 
+  // Greyscale + blue theme. All colors live in CSS variables on .ui; the
+  // .ui--dark modifier swaps the greys so the panel matches LeetCode's own
+  // light/dark theme (detected from the page, see applyTheme()).
   const STYLE = `
     :host { all: initial; }
     * { box-sizing: border-box; }
     .ui {
+      --surface: #ffffff;      /* panel background */
+      --bg-soft: #f4f4f5;      /* hovers, soft chips */
+      --ink: #18181b;          /* main text */
+      --muted: #71717a;        /* secondary text */
+      --line: #e4e4e7;         /* borders */
+      --accent: #2563eb;       /* THE blue — primary actions + highlights */
+      --accent-press: #1d4ed8;
+      --accent-deep: #1e40af;
+      --accent-soft: #eff6ff;  /* soft blue background for callouts */
+      --accent-soft-ink: #1e40af;
+      --code-bg: #ececee;
+      --pre-bg: #1c1c21;
+      --pre-ink: #e4e4e7;
+      --shadow: rgba(24,24,27,.18);
       font: 14px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
         Helvetica, Arial, sans-serif;
     }
+    .ui--dark {
+      --surface: #232327;
+      --bg-soft: #2e2e33;
+      --ink: #f4f4f5;
+      --muted: #a1a1aa;
+      --line: #3a3a40;
+      --accent: #3b82f6;
+      --accent-press: #2563eb;
+      --accent-deep: #1d4ed8;
+      --accent-soft: #1e2a45;
+      --accent-soft-ink: #93c5fd;
+      --code-bg: #2e2e33;
+      --pre-bg: #131316;
+      --pre-ink: #d4d4d8;
+      --shadow: rgba(0,0,0,.5);
+    }
+
+    /* Keyboard focus is always visible — and always blue. */
+    button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
     /* Launcher: a split pill — [toggle | Review] — bottom-right. */
     .launch {
       position: fixed; right: 18px; bottom: 18px; z-index: 1;
       display: inline-flex; align-items: stretch; border-radius: 999px;
-      overflow: hidden; box-shadow: 0 6px 20px rgba(79,70,229,.35);
+      overflow: hidden; box-shadow: 0 6px 20px rgba(37,99,235,.35);
     }
     .launch__toggle, .launch__review {
       appearance: none; border: 0; cursor: pointer; color: #fff;
       font: 600 13px/1 inherit; padding: 11px 14px; display: inline-flex;
       align-items: center; gap: 7px;
     }
-    .launch__toggle { background: #4f46e5; }
-    .launch__toggle:hover { background: #4338ca; }
-    .launch__review { background: #4338ca; border-left: 1px solid rgba(255,255,255,.25); }
-    .launch__review:hover { background: #3730a3; }
+    .launch__toggle { background: var(--accent); }
+    .launch__toggle:hover { background: var(--accent-press); }
+    .launch__review { background: var(--accent-press); border-left: 1px solid rgba(255,255,255,.25); }
+    .launch__review:hover { background: var(--accent-deep); }
     .launch__badge {
       min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px;
-      background: #fff; color: #4f46e5; font-size: 10px; font-weight: 700;
+      background: #fff; color: var(--accent-press); font-size: 10px; font-weight: 700;
       display: inline-grid; place-items: center;
     }
 
@@ -200,64 +236,67 @@
        width/height are defaults; drag handles set inline px overrides. */
     .panel {
       position: fixed; top: ${TOP_OFFSET}px; height: calc(100vh - ${TOP_OFFSET}px);
-      width: min(520px, 92vw); background: #fff; color: #1c1c28; z-index: 2;
+      width: min(520px, 92vw); background: var(--surface); color: var(--ink); z-index: 2;
       display: flex; flex-direction: column; transition: transform .22s ease;
     }
-    .panel--right { right: 0; box-shadow: -12px 0 40px rgba(20,20,40,.18); transform: translateX(100%); }
-    .panel--left  { left: 0;  box-shadow: 12px 0 40px rgba(20,20,40,.18);  transform: translateX(-100%); }
+    .panel--right { right: 0; box-shadow: -12px 0 40px var(--shadow); transform: translateX(100%); }
+    .panel--left  { left: 0;  box-shadow: 12px 0 40px var(--shadow);  transform: translateX(-100%); }
     .panel--open { transform: translateX(0); }
 
     .phead {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 14px; border-bottom: 1px solid #ececf1;
+      padding: 12px 14px; border-bottom: 1px solid var(--line);
     }
     .phead__l { display: flex; align-items: center; gap: 10px; min-width: 0; }
     .mark {
-      width: 28px; height: 28px; border-radius: 8px; background: #4f46e5;
-      color: #fff; display: grid; place-items: center; font-size: 15px; font-weight: 700; flex: 0 0 auto;
+      width: 28px; height: 28px; border-radius: 8px; background: var(--ink);
+      color: var(--surface); display: grid; place-items: center; font-size: 15px; font-weight: 700; flex: 0 0 auto;
     }
     .pname { font-size: 14.5px; font-weight: 650; }
-    .pmeta { font-size: 11.5px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pmeta { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .phead__r { display: flex; align-items: center; gap: 6px; flex: 0 0 auto; }
     .pill { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
-    .pill--revision { background: #fff7ed; color: #b45309; }
-    .pill--approved { background: #ecfdf5; color: #16a34a; }
-    .pill--neutral { background: #eef2ff; color: #4f46e5; }
+    /* Greyscale verdicts: approved = blue (the highlight), needs-revision =
+       inverted ink (urgent without color), pending = quiet grey. */
+    .pill--revision { background: var(--ink); color: var(--surface); }
+    .pill--approved { background: var(--accent-soft); color: var(--accent-soft-ink); }
+    .pill--neutral { background: var(--bg-soft); color: var(--muted); }
     .iconbtn {
       appearance: none; border: 0; background: none; cursor: pointer;
-      font-size: 16px; line-height: 1; color: #6b7280; padding: 4px 7px; border-radius: 6px;
+      font-size: 16px; line-height: 1; color: var(--muted); padding: 4px 7px; border-radius: 6px;
     }
-    .iconbtn:hover { background: #f1f1f5; color: #1c1c28; }
+    .iconbtn:hover { background: var(--bg-soft); color: var(--ink); }
     .iconbtn--x { font-size: 20px; }
 
-    .actions { padding: 12px 14px; border-bottom: 1px solid #ececf1; display: flex; gap: 8px; align-items: stretch; }
+    .actions { padding: 12px 14px; border-bottom: 1px solid var(--line); display: flex; gap: 8px; align-items: stretch; }
     .review-btn {
       appearance: none; border: 0; cursor: pointer; flex: 1; padding: 10px 14px;
-      background: #4f46e5; color: #fff; font: 600 14px/1 inherit; border-radius: 10px;
+      background: var(--accent); color: #fff; font: 600 14px/1 inherit; border-radius: 10px;
     }
-    .review-btn:hover { background: #4338ca; }
+    .review-btn:hover { background: var(--accent-press); }
     .review-btn:disabled { opacity: .6; cursor: progress; }
     .size-reset {
       appearance: none; cursor: pointer; flex: 0 0 auto; width: 40px;
-      background: #fff; color: #6b7280; border: 1px solid #ececf1; border-radius: 10px;
+      background: var(--surface); color: var(--muted); border: 1px solid var(--line); border-radius: 10px;
       font-size: 15px;
     }
-    .size-reset:hover { color: #1c1c28; background: #f6f6fb; }
+    .size-reset:hover { color: var(--ink); background: var(--bg-soft); }
 
     /* Footer: a quick link to Settings that also shows the active model. */
-    .pfoot { border-top: 1px solid #ececf1; padding: 6px 8px; flex: 0 0 auto; }
+    .pfoot { border-top: 1px solid var(--line); padding: 6px 8px; flex: 0 0 auto; }
     .foot-btn {
       width: 100%; appearance: none; border: 0; background: none; cursor: pointer;
       display: flex; align-items: center; gap: 8px; padding: 6px 8px;
-      border-radius: 8px; font: inherit; color: #6b7280; text-align: left;
+      border-radius: 8px; font: inherit; color: var(--muted); text-align: left;
     }
-    .foot-btn:hover { background: #f1f1f5; color: #1c1c28; }
+    .foot-btn:hover { background: var(--bg-soft); color: var(--ink); }
     .foot-gear { font-size: 14px; flex: 0 0 auto; }
     .foot-model { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    /* "no changes" note banner above the review body */
+    /* "no changes" note banner above the review body — a blue callout. */
     .ud-note {
-      background: #eef2ff; color: #3730a3; border: 1px solid #e0e3f5;
+      background: var(--accent-soft); color: var(--accent-soft-ink);
+      border: 1px solid rgba(37,99,235,.25);
       border-radius: 8px; padding: 8px 10px; font-size: 12.5px; margin-bottom: 12px;
     }
 
@@ -270,31 +309,32 @@
     .rsz--c { width: 16px; height: 16px; bottom: 0; z-index: 6; }
     .panel--right .rsz--c { left: 0; cursor: nesw-resize; }
     .panel--left .rsz--c { right: 0; cursor: nwse-resize; }
-    .rsz--w:hover, .rsz--h:hover { background: rgba(79,70,229,.14); }
+    .rsz--w:hover, .rsz--h:hover { background: rgba(37,99,235,.15); }
 
-    .tabs { display: flex; gap: 4px; padding: 6px 12px 0; border-bottom: 1px solid #ececf1; }
+    .tabs { display: flex; gap: 4px; padding: 6px 12px 0; border-bottom: 1px solid var(--line); }
     .tab {
       appearance: none; border: 0; background: none; cursor: pointer;
-      padding: 8px 12px; font: 600 13px/1 inherit; color: #6b7280;
+      padding: 8px 12px; font: 600 13px/1 inherit; color: var(--muted);
       border-bottom: 2px solid transparent; margin-bottom: -1px;
     }
-    .tab--active { color: #4f46e5; border-bottom-color: #4f46e5; }
+    .tab:hover { color: var(--ink); }
+    .tab--active { color: var(--accent); border-bottom-color: var(--accent); }
     .body { flex: 1; overflow: auto; padding: 16px; }
-    .empty { color: #6b7280; font-size: 13px; text-align: center; margin-top: 36px; }
+    .empty { color: var(--muted); font-size: 13px; text-align: center; margin-top: 36px; }
 
-    .loading { display: flex; align-items: center; gap: 10px; color: #6b7280; margin-top: 30px; justify-content: center; }
-    .spin { width: 18px; height: 18px; border: 2px solid #e5e7eb; border-top-color: #4f46e5; border-radius: 50%; animation: ud-spin .8s linear infinite; }
+    .loading { display: flex; align-items: center; gap: 10px; color: var(--muted); margin-top: 30px; justify-content: center; }
+    .spin { width: 18px; height: 18px; border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: ud-spin .8s linear infinite; }
     @keyframes ud-spin { to { transform: rotate(360deg); } }
 
     .hitem {
       width: 100%; text-align: left; appearance: none; cursor: pointer;
-      border: 1px solid #ececf1; background: #fff; border-radius: 10px;
-      padding: 10px 12px; margin-bottom: 8px; display: block; font: inherit;
+      border: 1px solid var(--line); background: var(--surface); border-radius: 10px;
+      padding: 10px 12px; margin-bottom: 8px; display: block; font: inherit; color: var(--ink);
     }
-    .hitem:hover { border-color: #c7c9d6; background: #fafafe; }
+    .hitem:hover { border-color: var(--muted); background: var(--bg-soft); }
     .hitem__top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-    .hitem__when { font-size: 11px; color: #9ca3af; }
-    .hitem__sub { font-size: 12px; color: #6b7280; margin-top: 3px; }
+    .hitem__when { font-size: 11px; color: var(--muted); }
+    .hitem__sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
 
     .md .ud-h { margin: 14px 0 6px; line-height: 1.3; }
     .md h1.ud-h { font-size: 18px; } .md h2.ud-h { font-size: 16px; }
@@ -303,16 +343,16 @@
     .md .ud-list { margin: 8px 0; padding-left: 22px; }
     .md .ud-list li { margin: 3px 0; }
     .md .ud-code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px;
-      background: #f1f1f5; padding: 1px 5px; border-radius: 5px;
+      font-family: Monaco, Menlo, 'Ubuntu Mono', Consolas, 'source-code-pro', monospace; font-size: 12.5px;
+      background: var(--code-bg); padding: 1px 5px; border-radius: 5px;
     }
     .md .ud-pre {
-      background: #0f172a; color: #e2e8f0; border-radius: 10px; padding: 12px 14px;
+      background: var(--pre-bg); color: var(--pre-ink); border-radius: 10px; padding: 12px 14px;
       overflow: auto; margin: 10px 0;
     }
-    .md .ud-pre code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; background: none; padding: 0; }
-    .md .ud-hr { border: 0; border-top: 1px solid #ececf1; margin: 14px 0; }
-    .md a { color: #4f46e5; }
+    .md .ud-pre code { font-family: Monaco, Menlo, 'Ubuntu Mono', Consolas, 'source-code-pro', monospace; font-size: 12.5px; background: none; padding: 0; }
+    .md .ud-hr { border: 0; border-top: 1px solid var(--line); margin: 14px 0; }
+    .md a { color: var(--accent); }
     .md strong { font-weight: 650; }
     .md :first-child { margin-top: 0; }
   `;
@@ -379,6 +419,7 @@
     els = {
       host,
       root,
+      ui: root.querySelector(".ui"),
       panel: root.getElementById("ud-panel"),
       badge: root.getElementById("ud-badge"),
       meta: root.getElementById("ud-meta"),
@@ -414,12 +455,52 @@
     );
 
     applySide();
+    applyTheme();
+    watchPageTheme();
     return els;
   }
 
   function ensureOverlay() {
     if (!els) buildOverlay();
     return els;
+  }
+
+  // ---- Theme: match LeetCode's own light/dark mode --------------------------
+  // LeetCode toggles a "dark" class on <html>. If neither "dark" nor "light"
+  // is present (e.g. the site changes), fall back to the OS preference.
+  function pageIsDark() {
+    const html = document.documentElement;
+    if (html.classList.contains("dark")) return true;
+    if (html.classList.contains("light")) return false;
+    try {
+      return window.matchMedia("(prefers-color-scheme: dark)").matches;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function applyTheme() {
+    if (!els || !els.ui) return;
+    els.ui.classList.toggle("ui--dark", pageIsDark());
+  }
+
+  // Re-theme live when the user flips LeetCode's appearance setting.
+  function watchPageTheme() {
+    try {
+      new MutationObserver(() => applyTheme()).observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["class"],
+      });
+    } catch (e) {
+      /* observer is best-effort */
+    }
+    try {
+      window
+        .matchMedia("(prefers-color-scheme: dark)")
+        .addEventListener("change", () => applyTheme());
+    } catch (e) {
+      /* older browsers — ignore */
+    }
   }
 
   function applySide() {

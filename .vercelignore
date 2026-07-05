@@ -1,9 +1,11 @@
-# Keep the Python backend OUT of the static Vercel deploy entirely, so Vercel
-# never tries to build it. Vercel serves only the frontend files that remain
-# (index.html, popup/options .html/.css/.js, content.js, config.js, agent.md).
+# Keep the Python backend OUT of the Vercel deploy entirely, so Vercel never
+# tries to build it. Vercel builds ONLY website/ (see vercel.json); the
+# extension source files stay in the upload because the website build zips
+# them into the downloadable undoomed-extension.zip.
 
 # --- Python backend & packaging ---
-src/
+# (anchored to the repo root so it does NOT match website/src/)
+/src/
 *.py
 pyproject.toml
 requirements.txt
@@ -20,3 +22,8 @@ undoomed_state.db-wal
 # --- Backend container files ---
 Dockerfile
 .dockerignore
+
+# --- Website build artifacts (rebuilt on Vercel) ---
+website/node_modules/
+website/dist/
+website/public/undoomed-extension.zip

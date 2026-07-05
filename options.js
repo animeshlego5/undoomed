@@ -12,6 +12,7 @@ const API_BASE_URL =
   (typeof window !== "undefined" && window.UNDOOMED_API_BASE_URL) ||
   "http://127.0.0.1:8000";
 const API_URL = API_BASE_URL.replace(/\/+$/, "") + "/api/review";
+const HEALTH_URL = API_BASE_URL.replace(/\/+$/, "") + "/health";
 
 const STORAGE = {
   provider: "undoomed_provider",
@@ -40,12 +41,54 @@ const sideEl = document.getElementById("overlay-side");
 const statusEl = document.getElementById("status");
 const toggleBtn = document.getElementById("toggle-key");
 const testBtn = document.getElementById("test-btn");
+const healthBtn = document.getElementById("health");
+const healthTextEl = document.getElementById("health-text");
 
 // kind: "" (neutral) | "ok" | "warn" | "error"
 function setStatus(text, kind = "") {
   statusEl.textContent = text || "";
   statusEl.className = "status" + (kind ? " status--" + kind : "");
 }
+
+// ---- Server health check -----------------------------------------------------
+// Pings the backend's lightweight GET /health probe so the user sees whether
+// the server is up BEFORE they fill in the form (or click Review and wonder
+// why nothing happens). Runs on page load, after every Test connection, and
+// whenever the chip itself is clicked.
+function serverHost() {
+  try {
+    return new URL(API_BASE_URL).host;
+  } catch (_) {
+    return API_BASE_URL;
+  }
+}
+
+async function checkServerHealth() {
+  healthBtn.className = "health health--checking";
+  healthTextEl.textContent = "Checking server at " + serverHost() + "…";
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 4000);
+  try {
+    const response = await fetch(HEALTH_URL, { signal: ctrl.signal });
+    if (response.ok) {
+      healthBtn.className = "health health--ok";
+      healthTextEl.textContent = "Server connected — " + serverHost();
+    } else {
+      healthBtn.className = "health health--down";
+      healthTextEl.textContent =
+        "Server at " + serverHost() + " answered HTTP " + response.status + " — click to re-check";
+    }
+  } catch (_) {
+    healthBtn.className = "health health--down";
+    healthTextEl.textContent =
+      "Server unreachable at " + serverHost() + ' — start it with "undoom serve", then click to re-check';
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+healthBtn.addEventListener("click", checkServerHealth);
 
 // ---- Valid-model history (per provider) -------------------------------------
 // We remember every model that returned a SUCCESSFUL Test connection, grouped
@@ -228,7 +271,9 @@ testBtn.addEventListener("click", async () => {
     );
   } finally {
     testBtn.disabled = false;
+    checkServerHealth(); // a test just talked to the server — refresh the chip
   }
 });
 
 loadSettings();
+checkServerHealth();

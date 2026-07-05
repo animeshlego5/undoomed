@@ -120,6 +120,7 @@ undoomed/
 ├─ undoomed_state.db      # (created on first run) the memory file (SQLite)
 │
 ├─ manifest.json          # Browser extension ID card + permissions (Manifest V3)
+├─ icons/                 # Toolbar/store icons (16/48/128px blue "?" mark)
 ├─ background.js          # Service worker: the shared review engine (read code,
 │                         #   fetch backend, save history, drive the overlay)
 ├─ content.js             # On-page controls + the results OVERLAY (Shadow DOM)
@@ -129,9 +130,12 @@ undoomed/
 ├─ options.html / .css / .js   # Settings page (provider + key + panel side + Test)
 │
 ├─ agent.md               # Drop-in AI-assistant rules (Claude Code / Cursor)
-├─ index.html             # The marketing landing page (Tailwind via CDN)
+├─ website/               # The marketing site (Vite + React + Tailwind v4, Bun)
+│  ├─ src/components/     #   Nav, Hero, Downloads, modals… one file each
+│  ├─ scripts/            #   build step that zips the extension for download
+│  └─ public/             #   static files (agent.md, favicon, the zip)
 │
-├─ vercel.json            # Vercel: serve the static frontend, skip any build
+├─ vercel.json            # Vercel: build website/ with Bun, serve website/dist
 ├─ .vercelignore          # Keeps the Python backend out of the Vercel deploy
 ├─ Dockerfile             # Production image for the backend (Render/Railway)
 ├─ .dockerignore          # Keeps secrets/data/frontend out of the image
@@ -269,6 +273,9 @@ This file tells Chrome:
   problems), your local backend, and the deployed backends (`*.onrender.com`,
   `*.up.railway.app`).
 - Its **action** — clicking the toolbar icon opens `popup.html`.
+- Its **icons** — the `icons/` folder holds the brand mark (a blue rounded
+  square with a white "?") at 16, 48, and 128 pixels, used in the toolbar, the
+  extensions page, and any future store listing.
 - Its **background service worker** — `background.js` (the review engine, §6.3).
 - Its **content scripts** — `md.js` then `content.js`, auto-loaded on any
   `https://leetcode.com/problems/*` page.
@@ -318,16 +325,26 @@ you see on the page:
   big "Request Socratic Review" button, a **Current** tab (the latest review) and
   a **History** tab. At the bottom, a **footer** shows the active provider · model
   and doubles as a second link to Settings.
+- **Theme** — the whole panel is **greyscale with one blue accent**: greys carry
+  the layout, and blue is reserved for the things that matter (the Review
+  button, the active tab, links, and the "Approved" badge). The panel also
+  **matches LeetCode's appearance automatically**: turn on LeetCode's dark mode
+  and the panel goes dark with it, instantly, no reload needed.
 - **Description scraping** — it still answers `UNDOOMED_SCRAPE` with the problem
   text and a DOM code fallback.
 
 ### 6.5 `popup.html` / `popup.js` — the toolbar trigger
 
 The popup is now deliberately thin. It shows the brand, one **"Request Socratic
-Review"** button, a status line, and a footer naming the current problem. When
-clicked it checks you're on a LeetCode problem with an API key set, then asks the
-service worker to run the review — the results appear in the on-page panel. (You
-can ignore the popup entirely and use the on-page **Review** button instead.)
+Review"** button, a status line, and a footer with a settings link (which shows
+the active **provider · model**, so you always know what will answer before you
+click) plus the current problem's name. When clicked it checks you're on a
+LeetCode problem with an API key set, then asks the service worker to run the
+review — the results appear in the on-page panel. (You can ignore the popup
+entirely and use the on-page **Review** button instead.)
+
+The popup and the Settings page share the same **greyscale + blue** look and
+both follow your computer's **light/dark mode** automatically.
 
 ### 6.6 Choosing the side + per-problem history
 
@@ -639,6 +656,12 @@ test or running the backend without the extension).
 1. Open Settings in either of two ways: click the toolbar popup's **⚙ Settings**
    link, or click the **⚙** button (or the provider · model **footer**) on the
    on-page panel. Either opens the full Settings page in a new tab.
+
+   At the very top of the form a small **server health chip** tells you at a
+   glance whether your Un-doomed backend is running: a **blue dot** means
+   "connected", a **red dot** means "unreachable" (with a reminder to run
+   `undoom serve`). It checks automatically when the page opens and after every
+   Test connection; click the chip any time to re-check.
 2. Pick your **AI provider** from the dropdown.
 3. Choose a **model**. The model field is a dropdown that remembers every model
    that has passed a **Test connection** for the selected provider, so you can
@@ -797,32 +820,45 @@ edits take effect immediately — no reinstall needed.
 
 ---
 
-## 13. The landing page (`index.html`, Phase 4b)
+## 13. The landing page (`website/`, Phase 4b — rebuilt in Prompt 23)
 
-`index.html` is a self-contained marketing page you can open directly in a
-browser (Tailwind CSS is loaded from a CDN, so there's no build step). It follows
-the same calm, "anti-doomscrolling" brand: a near-white surface with a faint
-grid, dark-indigo accents, generous whitespace, and gentle motion.
+The marketing site lives in the **`website/`** folder as a modern web app:
+**Vite** (the build tool), **React 19** (components), **Tailwind CSS v4**
+(styling), and **Bun** (the fast JavaScript runtime/package manager that
+installs and builds it). It replaced the old single-file `index.html`, which
+has been deleted. No backend is required — the site is fully static.
 
-It has:
+It keeps the same calm, "anti-doomscrolling" brand as the extension — soft grey
+surface with a faint dot grid, **greyscale with a single blue accent** — and
+adds two upgrades: the whole site is set in the **terminal font stack**
+(`Monaco, Menlo, Ubuntu Mono, Consolas, source-code-pro`), and it has automatic
+**dark mode** (the design tokens are CSS variables that flip with your OS
+preference, so components never hardcode colors).
 
-- a **hero** with the hook *"Stop scrolling. Start building."* and a little
-  terminal mock-up showing an `undoom check` result;
-- a **"how it works"** row introducing the three reviewers;
-- a **downloads** section with four cards:
-  - **Browser Extension** — a **"Get Beta Access"** button that opens a styled
-    modal with 3-step "Load unpacked" instructions and a `.zip` download button
-    (placeholder `undoomed-extension.zip`);
-  - **CLI Tool** — a copy-to-clipboard `pip install undoomed`;
-  - **Claude `agent.md`** — a **"View instructions"** button that opens a modal
-    showing the `agent.md` contents, with Copy + Download buttons;
-  - **VS Code Extension** — still marked **Coming soon**;
-- a short **FAQ** and footer.
+The layout (each piece is its own file in `website/src/components/`):
 
-Both modals share one small open/close script (backdrop click, ✕ button, and the
-Escape key all close them).
+- `Nav` — sticky frosted header; `Hero` — *"Stop scrolling. Start building."*
+  plus the terminal mock-up of an `undoom check` run;
+- `HowItWorks` — the three-reviewer row;
+- `Downloads` — four cards: **Browser Extension** ("Get Beta Access" modal with
+  load-unpacked steps and a real `.zip` download — see below), **CLI Tool**
+  (copy-to-clipboard `pip install undoomed`), **VS Code** (coming soon), and
+  **Claude `agent.md`** (modal with the file's contents + Copy/Download);
+- `Faq`, `Cta`, `Footer`; `Modal` — one shared, accessible modal (Escape,
+  backdrop click, and ✕ all close it; the page behind stops scrolling).
 
-To view it: just double-click `index.html` (or open it in any browser).
+**The download is real now:** at build time a small script
+(`website/scripts/make-extension-zip.mjs`) zips the actual extension files
+(manifest, scripts, styles, icons) into `public/undoomed-extension.zip`, so the
+site always ships the current extension version.
+
+To work on it: `cd website`, then `bun install` once, `bun run dev` for a live
+dev server, `bun run build` to produce the deployable `dist/` folder.
+
+> **"bun is not recognized"?** Terminals only read the PATH when they start, so
+> any terminal that was already open when Bun was installed can't see it.
+> Either open a **new** terminal, or refresh the current one with
+> `$env:Path += ";$env:USERPROFILE\.bun\bin"` (PowerShell) and try again.
 
 ---
 
@@ -868,11 +904,13 @@ Everything funnels through one setting:
 
 ### 15.2 Deploy the landing page to Vercel
 
-`vercel.json` tells Vercel this is a **static** project (no build, no install)
-and to serve the repo root; `.vercelignore` removes the Python backend from the
-upload so the build can't fail on it. Connect the GitHub repo to Vercel and it
-will serve `index.html` (plus `agent.md`, the CSS/JS, etc.). No environment
-variables are needed for the page itself.
+`vercel.json` tells Vercel to build the site with **Bun**: it runs
+`cd website && bun install` and `cd website && bun run build`, then serves the
+resulting `website/dist` folder. `.vercelignore` keeps the Python backend out
+of the upload (anchored as `/src/` so it doesn't accidentally exclude
+`website/src/`) — the extension files stay in, because the build zips them into
+the downloadable `undoomed-extension.zip`. Connect the GitHub repo to Vercel
+and it does the rest; no environment variables are needed for the page itself.
 
 ### 15.3 Deploy the backend with Docker (Render / Railway)
 
@@ -1186,3 +1224,190 @@ Backend unchanged.
 
 **To get the fixes:** reload the unpacked extension (Extensions → reload). No
 backend redeploy needed for this prompt.
+
+### Prompt 21 — Greyscale + blue theme, dark mode everywhere (2026-07-06)
+
+A visual redesign of all three extension surfaces (toolbar popup, Settings
+page, on-page panel), plus a few quality-of-life improvements. **No backend
+changes** — this prompt is entirely about how the extension looks and feels.
+
+**1. New color theme: greyscale with a single blue accent.**
+The old indigo/purple accent (and the green/orange/red status colors) are gone.
+Everything is now shades of grey — near-white surfaces, charcoal text — with
+**one blue** (`#2563eb`) reserved for the things that deserve attention: the
+primary "Request Socratic Review" buttons, links, the active tab, keyboard
+focus rings, and the "Approved" badge. In plain terms: if it's blue, it's
+important; everything else stays quiet. Status verdicts translate like this:
+
+- **Approved** → soft **blue** badge (the happy highlight).
+- **Needs revision** → **inverted** badge (dark background, light text) — it
+  stands out by contrast, not by color.
+- **Pending / errors** → grey, or dark **bold** text for errors, so problems
+  are still unmissable without adding a second color.
+
+**2. Dark mode.**
+- The **popup** and **Settings** page now follow your computer's light/dark
+  preference automatically (via the CSS `prefers-color-scheme` rule) — same
+  greyscale, flipped: charcoal surfaces, light text, a slightly brighter blue.
+- The **on-page panel** is smarter: instead of following the *computer*, it
+  follows **LeetCode itself**. LeetCode marks its dark mode with a `dark` label
+  on the page; the panel watches that label (a `MutationObserver`) and flips
+  its own colors the moment you toggle LeetCode's appearance — so you never get
+  a glaring white panel on a dark site. If LeetCode ever stops using that
+  label, the panel falls back to the computer preference.
+- Under the hood all the panel's colors moved into **CSS variables** (one list
+  of named colors for light, one for dark) instead of being hard-coded in
+  dozens of places — future re-theming is a ten-line change.
+
+**3. Small but meaningful UI upgrades.**
+- **Keyboard focus rings**: tabbing through any Un-doomed button now shows a
+  clear blue outline (`:focus-visible`), an accessibility win that doesn't
+  affect mouse users.
+- **The popup footer now shows the active provider · model** (e.g.
+  "⚙ openai · gpt-4o-mini"), exactly like the on-page panel's footer — you can
+  see what will answer *before* you spend tokens, and clicking it opens
+  Settings.
+- **Dead CSS removed**: `popup.css` still carried ~100 lines of styles for the
+  result card and Markdown that the popup stopped rendering back when results
+  moved on-page (Prompt 17). Deleted.
+- Inactive tabs and history cards now brighten on hover, so everything
+  clickable *feels* clickable.
+
+**Files touched:** `popup.css` (rewrite: palette, dark mode, focus rings, dead
+styles removed), `options.css` (rewrite: palette, dark mode, focus rings),
+`popup.js` (provider · model footer label), `content.js` (STYLE moved to CSS
+variables, new palette, `pageIsDark()` + `applyTheme()` + `watchPageTheme()`),
+`manifest.json` (version 1.4.0), `documentation.md` (§6.4, §6.5, this entry).
+`index.html` (the marketing landing page) intentionally keeps its own look for
+now.
+
+**Verified:** all extension JS passes a Node syntax check; `manifest.json` is
+valid JSON (now v1.4.0); a repo-wide search confirms no indigo hex codes remain
+in any extension file.
+
+**To get the changes:** reload the unpacked extension (Extensions → reload),
+then refresh the LeetCode tab. No backend redeploy needed.
+
+### Prompt 22 — Icons, landing-page re-theme, error red, server health chip (2026-07-06)
+
+Prompt 21 ended with four suggestions; this prompt implements all of them.
+**No backend changes** (the health check uses the `GET /health` doorway the
+server has had since Prompt 7).
+
+**1. The extension finally has icons.**
+- New `icons/` folder with the brand mark — a **blue rounded square with a
+  white "?"** (Socratic hints = questions) — at 16, 48, and 128 pixels. Drawn
+  once at high resolution and scaled down so even the tiny toolbar version
+  stays crisp.
+- `manifest.json` now declares them under `icons` and `action.default_icon`,
+  so the toolbar button, the `chrome://extensions` page, and any future store
+  listing show the real logo instead of a generic letter.
+
+**2. The landing page (`index.html`) now matches the extension.**
+The marketing page swapped its indigo/purple accents for the same greyscale +
+blue system: the headline gradient, buttons, hover glows, and the little
+"Available" badges (previously green) are all blue now; the fake-terminal demo
+uses ink-grey for the faults line and blue for the hints line instead of
+amber/fuchsia. Same calm layout, same faint grid — just one accent color
+everywhere.
+
+**3. Errors get one muted red.**
+Prompt 21 made errors bold dark text; in practice that can read as "just
+another sentence". Errors in the popup and Settings page now use a **single
+muted red** (`#b91c1c` light / `#f87171` dark) — the one deliberate exception
+to greyscale + blue, reserved strictly for "something went wrong". Success,
+warnings, and everything else stay blue/grey.
+
+**4. Settings page: a live server health chip.**
+- A small chip at the top of the Settings form pings the backend's
+  `GET /health` probe and shows a **blue dot + "Server connected"** or a **red
+  dot + "Server unreachable… start it with `undoom serve`"** — so you know the
+  server is down *before* you fill in a form or burn a review click.
+- It checks when the page opens, re-checks after every **Test connection**,
+  and you can click the chip to re-check manually (a grey pulsing dot means
+  "checking…"). The check gives up after 4 seconds, so a dead server can't
+  hang the page.
+
+**Files touched:** `icons/icon16.png` / `icon48.png` / `icon128.png` (new),
+`manifest.json` (icons + version 1.5.0), `index.html` (palette swap),
+`popup.css` + `options.css` (`--danger` red for errors), `options.html` +
+`options.js` (health chip + `/health` ping), `documentation.md` (§4, §6.2,
+§10.1, §13, this entry).
+
+**Verified:** all extension JS passes a Node syntax check; `manifest.json` is
+valid JSON (v1.5.0) and its three icon paths exist on disk; a repo-wide search
+finds no indigo/amber/fuchsia/green leftovers in any HTML/CSS/JS file; the
+16px icon was eyeballed and is legible.
+
+**To get the changes:** reload the unpacked extension (Extensions → reload) —
+the new icon appears immediately (pin it!). Refresh the LeetCode tab. If the
+landing page is deployed on Vercel, redeploy it to publish the new look.
+
+### Prompt 23 — Website rebuilt on Vite + React + Bun, terminal fonts (2026-07-06)
+
+The single-file landing page became a real, modern web app — built by parallel
+AI agents orchestrated in one go — and the whole project adopted the terminal
+font stack. **No Python backend changes** (and the site needs no backend at
+all — it stays fully static).
+
+**1. The new `website/` app.**
+- Stack: **Bun** (fast JavaScript runtime + package manager, installed this
+  prompt), **Vite** (build tool), **React 19** (UI components), **Tailwind
+  CSS v4** (styling via design tokens instead of a CDN script).
+- Same content and greyscale + blue brand as before, now split into 10 small
+  components (`Nav`, `Hero`, `HowItWorks`, `Downloads`, `Faq`, `Cta`,
+  `Footer`, plus a shared accessible `Modal` and the two modals built on it).
+- Two genuine upgrades over the old page: **automatic dark mode** (design
+  tokens are CSS variables that flip with the OS preference) and the
+  **monospace terminal look** — the entire site is set in
+  `Monaco, Menlo, Ubuntu Mono, Consolas, source-code-pro`.
+- **The extension download is real now.** A build step
+  (`website/scripts/make-extension-zip.mjs`) zips the actual extension
+  (manifest, scripts, styles, icons — 14 files) into
+  `public/undoomed-extension.zip`, so "Get Beta Access" serves the current
+  version instead of pointing at a file that never existed.
+- Old `index.html` **deleted**; `README`, `vercel.json`, `.vercelignore`,
+  `.gitignore`, and this document all updated to match. One subtle fix along
+  the way: `.vercelignore`'s `src/` rule (meant for the Python backend) would
+  also have excluded `website/src/` from deploys — it's now anchored to the
+  repo root as `/src/`.
+
+**2. How it was built (for the curious).**
+The main assistant scaffolded the project skeleton (config, design tokens, app
+shell, zip script), then dispatched **three parallel Claude Opus agents**, each
+owning a disjoint set of component files — nav/hero/footer, how-it-works/
+downloads, and modals/FAQ/CTA. Because no two agents touched the same file,
+no isolated worktrees were needed. All three finished in under a minute; the
+site then built successfully on the first try.
+
+**3. Terminal fonts in the extension too.**
+Every monospace surface in the extension (code snippets and code blocks in
+reviews, the API-key field, the problem-slug label) now uses the same
+`Monaco, Menlo, Ubuntu Mono, Consolas, source-code-pro` stack. Prose stays in
+the system sans font for readability. `manifest.json` bumped to **1.5.1**.
+
+**Files touched:** `website/**` (new: app scaffold + 10 components + zip
+script), `index.html` (deleted), `vercel.json` (Bun build), `.vercelignore`
+(anchor `/src/`, exclude build artifacts), `.gitignore` (generated zip),
+`README.md` (layout + deploy blurb), `popup.css` / `options.css` /
+`content.js` (font stacks), `manifest.json` (1.5.1), `documentation.md`
+(§4, §13, §15.2, this entry).
+
+**Verified:** `bun install` + `bun run build` succeed (Vite bundles 40
+modules; zip contains 14 entries); a local preview server returned HTTP 200
+for the page, the extension zip (35.5 KB), and `agent.md`, and the built
+bundle contains the hero copy; all extension JS still passes Node syntax
+checks; `manifest.json` is valid JSON at v1.5.1.
+
+**To get the changes:** extension — reload it (Extensions → reload). Website —
+push to GitHub and let Vercel build (it now runs Bun automatically), or run
+`cd website && bun run dev` locally.
+
+### Prompt 24 — Fix: "bun is not recognized" in an already-open terminal (2026-07-06)
+
+No code changed. Running `bun run dev` right after Prompt 23 failed with
+*"bun is not recognized"* in a PowerShell window that was open **before** Bun
+was installed — terminals only read the PATH when they start. Fix: open a new
+terminal, or refresh the current one with
+`$env:Path += ";$env:USERPROFILE\.bun\bin"`. A troubleshooting note was added
+to §13 so the next person isn't surprised.
