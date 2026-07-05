@@ -5,7 +5,7 @@ export default function Cta() {
     <div className="mx-auto max-w-6xl px-5 pb-24">
       <div className="rounded-3xl bg-ink px-8 py-16 text-surface md:px-16 md:py-20">
         <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-surface/50">
-          <span className="text-[#8ab4f8]">/ 05</span> Get started
+          <span className="text-[#8ab4f8]">/ 04</span> Get started
         </p>
         <h3 className="mt-5 text-3xl font-medium tracking-tight md:text-5xl">
           Think it through. Ship it clean.

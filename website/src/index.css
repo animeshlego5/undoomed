@@ -60,6 +60,14 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Anchor jumps stop short of the sticky header instead of sliding under it. */
+#how,
+#downloads,
+#faq,
+#cli {
+  scroll-margin-top: 72px;
+}
+
 /* Frosted sticky header on cream */
 .glass {
   backdrop-filter: saturate(160%) blur(10px);
@@ -99,11 +107,22 @@ html {
   color: #ffffff;
 }
 
+/* Typewriter caret in the hero headline */
+.hero-caret {
+  animation: caret-blink 1.1s steps(2, start) infinite;
+}
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
 /* Respect users who prefer no motion. */
 @media (prefers-reduced-motion: reduce) {
   .reveal,
   .reveal-2,
-  .reveal-3 {
+  .reveal-3,
+  .hero-caret {
     animation: none;
   }
 }
