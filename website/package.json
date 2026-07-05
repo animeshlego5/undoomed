@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "bun scripts/make-extension-zip.mjs && vite build",
+    "build": "node scripts/make-extension-zip.mjs && vite build",
     "preview": "vite preview"
   },
   "dependencies": {

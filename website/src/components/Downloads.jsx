@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { Puzzle, Terminal, Code, FileText, ArrowRight } from "lucide-react";
 
-export default function Downloads({ onOpenExtension, onOpenAgent }) {
+// Every card shares the same hover: a slight lift-by-scale + darker border.
+const CARD =
+  "flex flex-col rounded-2xl border border-line bg-card p-6 transition-[transform,border-color] duration-200 hover:scale-[1.03] hover:border-ink/40";
+
+export default function Downloads({ onOpenExtension, onOpenAgent, onOpenVsCode }) {
   const [copyLabel, setCopyLabel] = useState("Copy");
 
   const handleCopy = () => {
@@ -37,14 +41,9 @@ export default function Downloads({ onOpenExtension, onOpenAgent }) {
 
       <div className="mt-14 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {/* Browser Extension */}
-        <article className="flex flex-col rounded-2xl border border-line bg-card p-6 transition-colors hover:border-ink/40">
-          <div className="flex items-center justify-between">
-            <div className="grid h-10 w-10 place-items-center rounded-lg border border-line">
-              <Puzzle size={18} strokeWidth={1.5} />
-            </div>
-            <span className="rounded-full border border-accent/40 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.15em] text-accent">
-              Available
-            </span>
+        <article className={CARD}>
+          <div className="grid h-10 w-10 place-items-center rounded-lg border border-line">
+            <Puzzle size={18} strokeWidth={1.5} />
           </div>
           <h3 className="mt-5 font-medium">Browser Extension</h3>
           <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">
@@ -62,17 +61,9 @@ export default function Downloads({ onOpenExtension, onOpenAgent }) {
         </article>
 
         {/* CLI Tool */}
-        <article
-          id="cli"
-          className="flex flex-col rounded-2xl border border-line bg-card p-6 transition-colors hover:border-ink/40"
-        >
-          <div className="flex items-center justify-between">
-            <div className="grid h-10 w-10 place-items-center rounded-lg border border-line">
-              <Terminal size={18} strokeWidth={1.5} />
-            </div>
-            <span className="rounded-full border border-accent/40 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.15em] text-accent">
-              Available
-            </span>
+        <article id="cli" className={CARD}>
+          <div className="grid h-10 w-10 place-items-center rounded-lg border border-line">
+            <Terminal size={18} strokeWidth={1.5} />
           </div>
           <h3 className="mt-5 font-medium">CLI Tool</h3>
           <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">
@@ -95,37 +86,28 @@ export default function Downloads({ onOpenExtension, onOpenAgent }) {
         </article>
 
         {/* VS Code Extension */}
-        <article className="flex flex-col rounded-2xl border border-line bg-card p-6 transition-colors hover:border-ink/40">
-          <div className="flex items-center justify-between">
-            <div className="grid h-10 w-10 place-items-center rounded-lg border border-line text-muted">
-              <Code size={18} strokeWidth={1.5} />
-            </div>
-            <span className="rounded-full border border-line px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.15em] text-muted">
-              Coming Soon
-            </span>
+        <article className={CARD}>
+          <div className="grid h-10 w-10 place-items-center rounded-lg border border-line">
+            <Code size={18} strokeWidth={1.5} />
           </div>
-          <h3 className="mt-5 font-medium text-muted">VS Code Extension</h3>
+          <h3 className="mt-5 font-medium">VS Code Extension</h3>
           <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">
             Inline Socratic review without leaving your editor.
           </p>
           <button
             type="button"
-            disabled
-            className="mt-5 cursor-not-allowed rounded-full border border-line px-5 py-2.5 text-sm font-medium text-muted/70"
+            onClick={onOpenVsCode}
+            className="mt-5 inline-flex items-center justify-center gap-1.5 rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-surface transition-colors hover:bg-accent hover:text-white"
           >
-            Coming soon
+            Get the extension
+            <ArrowRight size={14} strokeWidth={1.5} />
           </button>
         </article>
 
         {/* Claude agent.md */}
-        <article className="flex flex-col rounded-2xl border border-line bg-card p-6 transition-colors hover:border-ink/40">
-          <div className="flex items-center justify-between">
-            <div className="grid h-10 w-10 place-items-center rounded-lg border border-line">
-              <FileText size={18} strokeWidth={1.5} />
-            </div>
-            <span className="rounded-full border border-accent/40 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.15em] text-accent">
-              Template
-            </span>
+        <article className={CARD}>
+          <div className="grid h-10 w-10 place-items-center rounded-lg border border-line">
+            <FileText size={18} strokeWidth={1.5} />
           </div>
           <h3 className="mt-5 font-medium">
             Claude <code className="font-mono text-[13px]">agent.md</code>

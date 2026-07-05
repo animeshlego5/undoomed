@@ -130,6 +130,7 @@ undoomed/
 ├─ options.html / .css / .js   # Settings page (provider + key + panel side + Test)
 │
 ├─ agent.md               # Drop-in AI-assistant rules (Claude Code / Cursor)
+├─ vscode-extension/      # VS Code client: review the file you're editing
 ├─ website/               # The marketing site (Vite + React + Tailwind v4, Bun)
 │  ├─ src/components/     #   Nav, Hero, Downloads, modals… one file each
 │  ├─ scripts/            #   build step that zips the extension for download
@@ -862,19 +863,23 @@ The layout (each piece is its own file in `website/src/components/`):
   reduced motion it opens on the finished state and doesn't auto-play (the
   chips still work), and the window itself is marked decorative for screen
   readers with a text alternative.
-- `HowItWorks` — an auxia-style **scroll journey**: a vertical rail down the
-  center that **fills with blue as you scroll**, with the three reviewers as
-  stages that **zig-zag** around it (left → right → left; single column on
-  phones). Each stage has a blue pill (icon + agent name), its description,
-  and a **live looping demo card** showing that agent at work: the
-  Executioner sweeps edge cases and lands a "3 FAULTS FOUND" verdict, the
-  Tutor "types" and asks two Socratic questions, and the Critic strikes
+- `HowItWorks` — an auxia-style **scroll journey**: a connector line that
+  **snakes** down the page — beside stage 1 on the left, a rounded turn
+  across the page (carrying a small caption like "FAULTS BECOME QUESTIONS"),
+  down beside stage 2 on the right, and back to the left for stage 3 —
+  **drawing itself in blue as you scroll** (the path is measured from the
+  real layout and revealed with an SVG dash-offset; phones get a straight
+  left rail). Each stage has a **black pill** (agent icon + name), its
+  description, and a **live looping demo card** showing that agent at work:
+  the Executioner sweeps edge cases and lands a "3 FAULTS FOUND" verdict,
+  the Tutor "types" and asks two Socratic questions, and the Critic strikes
   through O(n²), replaces it with O(n), and ticks a style checklist. Stages
   fade up the first time they enter the viewport; all motion respects the
   reduced-motion setting;
 - `Downloads` — four cards: **Browser Extension** ("Get Beta Access" modal with
   load-unpacked steps and a real `.zip` download — see below), **CLI Tool**
-  (copy-to-clipboard `pip install undoomed`), **VS Code** (coming soon), and
+  (copy-to-clipboard `pip install undoomed`), **VS Code** (a setup modal for
+  the new extension in `vscode-extension/` — see below), and
   **Claude `agent.md`** (modal with the file's contents + Copy/Download);
 - `Faq` (bare divider rows with a rotating plus), `Cta` (a dark ink panel),
   `Footer`; `Modal` — one shared, accessible modal (Escape, backdrop click,
@@ -987,7 +992,6 @@ working.)
 
 ## 16. What's next (ideas, not yet built)
 
-- Optional icons for the extension toolbar.
 - A true button injected into LeetCode's own editor toolbar (today the on-page
   **Review** button is a floating launcher we fully control — robust against
   LeetCode's frequent DOM/class renames — rather than injected into their bar).
@@ -996,8 +1000,7 @@ working.)
 - Support for more coding sites beyond LeetCode.
 - Publishing `undoomed` to PyPI so `pip install undoomed` works for everyone
   (today it's an editable local install).
-- A real VS Code extension (the last "coming soon" client).
-- Producing the actual `undoomed-extension.zip` artifact for the download button.
+- Publishing the VS Code extension to the Marketplace (today it installs from a locally-built VSIX).
 
 ---
 
@@ -1666,3 +1669,79 @@ hard refresh or new tab may be needed to see it.)
 contains the rail-fill logic (`scaleY`), the IntersectionObserver, and all
 three demo cards' copy; the favicon file now byte-matches the extension's
 48px icon.
+
+### Prompt 30 — The connector now snakes like auxia's + black agent pills (2026-07-06)
+
+Two refinements to the Prompt 29 scroll journey, matching the provided
+auxia.io reference more closely.
+
+**1. The line snakes instead of running straight.** The straight center rail
+became a **path that travels with the content**: down the left edge beside
+the Executioner, a rounded 90° turn across the page, down the right edge
+beside the Tutor, and back across to the left for the Critic. Small captions
+sit in the middle of each horizontal run, breaking the line the way auxia's
+do ("FAULTS BECOME QUESTIONS", "LOGIC SOUND — STYLE NEXT"). Technically: the
+component measures where each stage actually sits (re-measuring on any
+resize), builds an SVG path with rounded corners from those positions, lays a
+grey version underneath, and reveals a blue copy on top using a stroke-dash
+offset tied to scroll position — so the blue line literally draws itself
+along the bends as you scroll. Phones keep the simple straight left rail.
+
+**2. Black agent pills.** The agent-name bubbles in the "How it works"
+section are now **ink-black** with the cream text, with the icon in soft blue
+— matching the requested look.
+
+**Files touched:** `website/src/components/HowItWorks.jsx`;
+`documentation.md` (§13, this entry). Extension unchanged.
+
+**Verified:** `bun run build` succeeds; the bundle contains the dash-offset
+draw logic, the measuring ResizeObserver, the horizontal-run captions, and
+the black pill styling.
+
+### Prompt 31 — A real VS Code extension + downloads polish (2026-07-06)
+
+The "coming soon" card finally shipped: Un-Doomed now has a **VS Code
+extension**, plus two small website touches.
+
+**1. The VS Code extension (`vscode-extension/`).**
+A small, dependency-free extension (plain JavaScript, no build step) that
+speaks the exact same `/api/review` protocol as the browser extension and
+CLI:
+- **"Un-Doomed: Request Socratic Review"** (`Ctrl+Alt+U` / `Cmd+Alt+U`)
+  reviews the file you're editing. The first review of a file asks *what the
+  code is supposed to do* (remembered per file; change it with **"Set Task
+  Description"**). The verdict, edge-case faults, and Socratic hints open in
+  a cream-themed panel beside the editor.
+- Reviews of the same file share a **stable thread id** (a hash of workspace
+  + file path), so the backend's attempt counter and memory work exactly
+  like the other clients.
+- **"Un-Doomed: Set API Key"** stores the key in VS Code's **secret
+  storage** — never in plain-text settings (a plain setting exists only as a
+  fallback). Provider/model/server URL/server secret live under Settings →
+  Un-Doomed.
+- The language is auto-detected from the editor and sent along, driving the
+  language-correct style review.
+- Files: `package.json` (manifest), `extension.js` (all logic),
+  `README.md`, `.vscode/launch.json` (press-F5 testing), `.vscodeignore`,
+  `icon.png` (the crossed-phone logo).
+
+**2. Website: downloads section polish.**
+- Hovering any download card now **slightly enlarges it** (a 1.03 scale with
+  the darker border), per request.
+- The "AVAILABLE" chips are gone (and with VS Code live, "COMING SOON" went
+  with them; the lone "TEMPLATE" chip was dropped too for a consistent
+  look).
+- The VS Code card is now active: **"Get the extension"** opens a new setup
+  modal (package the VSIX → Install from VSIX → set key and review).
+
+**Files touched:** `vscode-extension/**` (new client), website
+`Downloads.jsx` / `VsCodeModal.jsx` (new) / `App.jsx`; `documentation.md`
+(repo map, §13, §16, this entry).
+
+**Verified:** `extension.js` passes a Node syntax check and its
+`package.json` is valid JSON; the site builds and the bundle has zero
+"Available" leftovers, the scale hover, and the new modal.
+
+**To test the VS Code extension:** open the `vscode-extension` folder in VS
+Code and press **F5** (see §16 of this doc and the extension's README for
+packaging and publishing).

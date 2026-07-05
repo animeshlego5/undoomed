@@ -164,23 +164,64 @@ const STAGES = [
 export default function HowItWorks() {
   const railRef = useRef(null);
   const fillRef = useRef(null);
+  const dashRef = useRef(null);
   const stageEls = useRef([]);
   const [seen, setSeen] = useState([false, false, false]);
+  // Geometry of the snaking connector, measured from the real layout:
+  // { w, h, d (SVG path), mids: [y between 1&2, y between 2&3] }
+  const [geo, setGeo] = useState(null);
 
-  // The rail fills with blue as the section scrolls through the viewport.
+  // Measure the stages and build the zig-zag path: down the left edge of
+  // stage 1, a rounded turn across the page, down the right edge of stage 2,
+  // and back across to the left for stage 3.
+  useEffect(() => {
+    const measure = () => {
+      const rail = railRef.current;
+      const els = stageEls.current.filter(Boolean);
+      if (!rail || els.length < 3) return;
+      const w = rail.clientWidth;
+      const h = rail.clientHeight;
+      const tops = els.map((el) => el.offsetTop);
+      const bots = els.map((el) => el.offsetTop + el.offsetHeight);
+      const m0 = (bots[0] + tops[1]) / 2;
+      const m1 = (bots[1] + tops[2]) / 2;
+      const xL = 9;
+      const xR = w - 9;
+      const r = 24;
+      const y0 = Math.max(tops[0] - 8, 0);
+      const d =
+        `M ${xL} ${y0} V ${m0 - r} Q ${xL} ${m0} ${xL + r} ${m0} ` +
+        `H ${xR - r} Q ${xR} ${m0} ${xR} ${m0 + r} V ${m1 - r} ` +
+        `Q ${xR} ${m1} ${xR - r} ${m1} H ${xL + r} ` +
+        `Q ${xL} ${m1} ${xL} ${m1 + r} V ${bots[2]}`;
+      setGeo({ w, h, d, mids: [m0, m1] });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (railRef.current) ro.observe(railRef.current);
+    window.addEventListener("resize", measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+
+  // As the section scrolls through the viewport the connector draws itself:
+  // the mobile straight rail via scaleY, the desktop snake via dash offset.
   useEffect(() => {
     let raf = 0;
     const onScroll = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
         const rail = railRef.current;
-        const fill = fillRef.current;
-        if (!rail || !fill) return;
+        if (!rail) return;
         const r = rail.getBoundingClientRect();
         const vh = window.innerHeight || 1;
         const total = Math.max(r.height - vh * 0.35, 1);
         const p = Math.min(1, Math.max(0, (vh * 0.7 - r.top) / total));
-        fill.style.transform = `scaleY(${p})`;
+        if (fillRef.current) fillRef.current.style.transform = `scaleY(${p})`;
+        if (dashRef.current)
+          dashRef.current.style.strokeDashoffset = String(1 - p);
       });
     };
     onScroll();
@@ -298,21 +339,63 @@ export default function HowItWorks() {
         </p>
       </div>
 
-      {/* The journey: a center rail that fills as you scroll; stages zig-zag
-          left → right → left around it (single column on mobile). */}
+      {/* The journey: a connector that snakes down the page — beside stage 1
+          on the left, a rounded turn across to stage 2 on the right, and back
+          to the left for stage 3 — drawing itself in blue as you scroll.
+          On mobile it collapses to a straight left rail. */}
       <div ref={railRef} className="relative mt-16 md:mt-20">
+        {/* mobile: straight rail */}
         <div
           aria-hidden="true"
-          className="absolute bottom-0 left-[7px] top-0 w-[2px] bg-line md:left-1/2 md:-translate-x-1/2"
+          className="absolute bottom-0 left-[7px] top-0 w-[2px] bg-line md:hidden"
         />
         <div
           ref={fillRef}
           aria-hidden="true"
           style={{ transform: "scaleY(0)" }}
-          className="absolute bottom-0 left-[7px] top-0 w-[2px] origin-top bg-accent md:left-1/2 md:-translate-x-1/2"
+          className="absolute bottom-0 left-[7px] top-0 w-[2px] origin-top bg-accent md:hidden"
         />
 
-        <div className="space-y-20 md:space-y-28">
+        {/* desktop: the measured snake */}
+        {geo && (
+          <svg
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 hidden md:block"
+            width="100%"
+            height="100%"
+            viewBox={`0 0 ${geo.w} ${geo.h}`}
+            preserveAspectRatio="none"
+            fill="none"
+          >
+            <path d={geo.d} stroke="#dcd9c8" strokeWidth="2" />
+            <path
+              ref={dashRef}
+              d={geo.d}
+              stroke="#2563eb"
+              strokeWidth="2"
+              pathLength="1"
+              strokeDasharray="1"
+              strokeLinecap="round"
+              style={{ strokeDashoffset: 1 }}
+            />
+          </svg>
+        )}
+
+        {/* captions sitting on the horizontal runs, auxia-style */}
+        {geo &&
+          ["Faults become questions", "Logic sound — style next"].map(
+            (t, i) => (
+              <span
+                key={t}
+                style={{ top: geo.mids[i] }}
+                className="absolute left-1/2 hidden -translate-x-1/2 -translate-y-1/2 bg-surface px-4 font-mono text-[10px] uppercase tracking-[0.18em] text-muted md:block"
+              >
+                {t}
+              </span>
+            )
+          )}
+
+        <div className="space-y-20 md:space-y-32">
           {STAGES.map(({ tag, Icon, title, body, Demo }, i) => {
             const flip = i % 2 === 1; // odd stages sit on the right
             return (
@@ -322,11 +405,11 @@ export default function HowItWorks() {
                 ref={(el) => (stageEls.current[i] = el)}
                 className="relative pl-10 md:pl-0"
               >
-                {/* node on the rail */}
+                {/* node on the rail (mobile only — the snake replaces it) */}
                 <span
                   aria-hidden="true"
                   className={
-                    "absolute left-0 top-2 h-4 w-4 rounded-full border-2 transition-colors duration-500 md:left-1/2 md:-translate-x-1/2 " +
+                    "absolute left-0 top-2 h-4 w-4 rounded-full border-2 transition-colors duration-500 md:hidden " +
                     (seen[i]
                       ? "border-accent bg-accent"
                       : "border-line bg-card")
@@ -345,15 +428,19 @@ export default function HowItWorks() {
                     className={
                       "md:max-w-sm " +
                       (flip
-                        ? "md:order-2 md:justify-self-start md:pl-14"
-                        : "md:justify-self-end md:pr-14")
+                        ? "md:order-2 md:justify-self-end md:pr-12"
+                        : "md:justify-self-start md:pl-12")
                     }
                   >
                     <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted">
                       {tag}
                     </p>
-                    <div className="mt-3 inline-flex items-center gap-2.5 rounded-full bg-accent px-5 py-2.5 text-white">
-                      <Icon size={16} strokeWidth={1.75} />
+                    <div className="mt-3 inline-flex items-center gap-2.5 rounded-full bg-ink px-5 py-2.5 text-surface">
+                      <Icon
+                        size={16}
+                        strokeWidth={1.75}
+                        className="text-[#8ab4f8]"
+                      />
                       <span className="text-sm font-medium">{title}</span>
                     </div>
                     <p className="mt-4 max-w-sm text-sm leading-relaxed text-muted">

@@ -8,9 +8,10 @@ import Cta from "./components/Cta.jsx";
 import Footer from "./components/Footer.jsx";
 import ExtensionModal from "./components/ExtensionModal.jsx";
 import AgentModal from "./components/AgentModal.jsx";
+import VsCodeModal from "./components/VsCodeModal.jsx";
 
 export default function App() {
-  // Which modal is open: "extension" | "agent" | null
+  // Which modal is open: "extension" | "agent" | "vscode" | null
   const [modal, setModal] = useState(null);
   const close = () => setModal(null);
 
@@ -23,6 +24,7 @@ export default function App() {
         <Downloads
           onOpenExtension={() => setModal("extension")}
           onOpenAgent={() => setModal("agent")}
+          onOpenVsCode={() => setModal("vscode")}
         />
         <Faq />
         <Cta />
@@ -30,6 +32,7 @@ export default function App() {
       <Footer />
       <ExtensionModal open={modal === "extension"} onClose={close} />
       <AgentModal open={modal === "agent"} onClose={close} />
+      <VsCodeModal open={modal === "vscode"} onClose={close} />
     </>
   );
 }

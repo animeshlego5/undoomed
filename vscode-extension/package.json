@@ -1,0 +1,71 @@
+{
+  "name": "undoomed-vscode",
+  "displayName": "Un-Doomed — Socratic Reviewer",
+  "description": "Socratic hints (never the answer) on the file you're editing, then a style review once the logic is clean. Talks to your Un-Doomed server.",
+  "version": "0.1.0",
+  "publisher": "undoomed",
+  "license": "MIT",
+  "icon": "icon.png",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["Education", "Other"],
+  "keywords": ["socratic", "code review", "tutor", "hints", "leetcode"],
+  "main": "./extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      {
+        "command": "undoomed.review",
+        "title": "Un-Doomed: Request Socratic Review"
+      },
+      {
+        "command": "undoomed.setTask",
+        "title": "Un-Doomed: Set Task Description for This File"
+      },
+      {
+        "command": "undoomed.setApiKey",
+        "title": "Un-Doomed: Set API Key (secret storage)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "undoomed.review",
+        "key": "ctrl+alt+u",
+        "mac": "cmd+alt+u",
+        "when": "editorTextFocus"
+      }
+    ],
+    "configuration": {
+      "title": "Un-Doomed",
+      "properties": {
+        "undoomed.serverUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:8000",
+          "description": "Base URL of your Un-Doomed server (local `undoom serve` or a deployed instance)."
+        },
+        "undoomed.provider": {
+          "type": "string",
+          "enum": ["", "openai", "anthropic", "gemini", "deepseek"],
+          "default": "",
+          "description": "AI provider. Leave blank to use the server's default."
+        },
+        "undoomed.model": {
+          "type": "string",
+          "default": "",
+          "description": "Model API id (e.g. gpt-4o-mini). Leave blank for the provider default."
+        },
+        "undoomed.apiKey": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Provider API key. **Prefer the `Un-Doomed: Set API Key` command** — it uses VS Code secret storage instead of plain-text settings. This field is only a fallback."
+        },
+        "undoomed.serverSecret": {
+          "type": "string",
+          "default": "",
+          "description": "Shared server secret (X-Server-Secret) — only if your deployed backend requires one."
+        }
+      }
+    }
+  }
+}
