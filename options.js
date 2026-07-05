@@ -19,7 +19,6 @@ const STORAGE = {
   model: "undoomed_model",
   apiKey: "undoomed_api_key",
   serverSecret: "undoomed_server_secret",
-  side: "undoomed_overlay_side",
   validModels: "undoomed_valid_models", // { provider: [model, ...] } — tested OK
 };
 
@@ -37,7 +36,6 @@ const modelSelectEl = document.getElementById("model-select");
 const modelNewEl = document.getElementById("model-new");
 const keyEl = document.getElementById("api-key");
 const serverEl = document.getElementById("server-secret");
-const sideEl = document.getElementById("overlay-side");
 const statusEl = document.getElementById("status");
 const toggleBtn = document.getElementById("toggle-key");
 const testBtn = document.getElementById("test-btn");
@@ -171,12 +169,10 @@ async function loadSettings() {
     STORAGE.model,
     STORAGE.apiKey,
     STORAGE.serverSecret,
-    STORAGE.side,
   ]);
   providerEl.value = saved[STORAGE.provider] || "openai";
   keyEl.value = saved[STORAGE.apiKey] || "";
   serverEl.value = saved[STORAGE.serverSecret] || "";
-  sideEl.value = saved[STORAGE.side] === "left" ? "left" : "right";
   populateModelDropdown(providerEl.value, (saved[STORAGE.model] || "").trim());
 }
 
@@ -199,7 +195,6 @@ document.getElementById("settings-form").addEventListener("submit", async (event
     [STORAGE.model]: currentModel(),
     [STORAGE.apiKey]: apiKey,
     [STORAGE.serverSecret]: serverEl.value.trim(),
-    [STORAGE.side]: sideEl.value === "left" ? "left" : "right",
   });
 
   if (apiKey) {

@@ -8,8 +8,9 @@
 //   2. Draws on-page CONTROLS — a launcher with a "Review" button (request a
 //      review without opening the toolbar popup) and a panel toggle.
 //   3. Draws the results OVERLAY in a Shadow DOM (so LeetCode's CSS can't bleed
-//      in and ours can't leak out). The panel can sit on the LEFT or RIGHT and
-//      starts below LeetCode's top bar so it never covers the timer/avatar.
+//      in and ours can't leak out). The panel is a FREE-FLOATING window: drag it
+//      anywhere by its header, resize from any edge/corner, and its position +
+//      size persist. It opens top-right (below LeetCode's bar) by default.
 //   4. Shows per-problem HISTORY cached in chrome.storage.local — reopen past
 //      reviews instantly, no API call, no tokens.
 //
@@ -113,7 +114,7 @@
   }
 
   // -------------------------------------------------------------------------
-  // 2. STORAGE (history + side preference)
+  // 2. STORAGE (history + window geometry)
   // -------------------------------------------------------------------------
   function currentSlug() {
     const m = /leetcode\.com\/problems\/([^/?#]+)/.exec(location.href);
@@ -131,32 +132,35 @@
       return [];
     }
   }
-  async function loadSide() {
+  // Window geometry (x, y, w, h) persists so the panel reopens exactly where
+  // you left it. Older builds stored only w/h under the same keys — those still
+  // load fine (x/y just come back null and fall back to the default corner).
+  async function loadWin() {
     try {
-      const s = await chrome.storage.local.get("undoomed_overlay_side");
-      return s.undoomed_overlay_side === "left" ? "left" : "right";
+      const s = await chrome.storage.local.get([
+        "undoomed_panel_x",
+        "undoomed_panel_y",
+        "undoomed_panel_w",
+        "undoomed_panel_h",
+      ]);
+      return {
+        x: typeof s.undoomed_panel_x === "number" ? s.undoomed_panel_x : null,
+        y: typeof s.undoomed_panel_y === "number" ? s.undoomed_panel_y : null,
+        w: s.undoomed_panel_w || null,
+        h: s.undoomed_panel_h || null,
+      };
     } catch (e) {
-      return "right";
+      return { x: null, y: null, w: null, h: null };
     }
   }
-  async function saveSide(value) {
+  async function saveWin(x, y, w, h) {
     try {
-      await chrome.storage.local.set({ undoomed_overlay_side: value });
-    } catch (e) {
-      /* ignore */
-    }
-  }
-  async function loadPanelSize() {
-    try {
-      const s = await chrome.storage.local.get(["undoomed_panel_w", "undoomed_panel_h"]);
-      return { w: s.undoomed_panel_w || null, h: s.undoomed_panel_h || null };
-    } catch (e) {
-      return { w: null, h: null };
-    }
-  }
-  async function savePanelSize(w, h) {
-    try {
-      await chrome.storage.local.set({ undoomed_panel_w: w, undoomed_panel_h: h });
+      await chrome.storage.local.set({
+        undoomed_panel_x: x,
+        undoomed_panel_y: y,
+        undoomed_panel_w: w,
+        undoomed_panel_h: h,
+      });
     } catch (e) {
       /* ignore */
     }
@@ -231,21 +235,26 @@
       display: inline-grid; place-items: center;
     }
 
-    /* Panel: a drawer on the left OR right, below the top bar.
-       width/height are defaults; drag handles set inline px overrides. */
+    /* Panel: a free-floating window. left/top/width/height are all set inline
+       by JS — dragged by the header, resized from any edge or corner. */
     .panel {
-      position: fixed; top: ${TOP_OFFSET}px; height: calc(100vh - ${TOP_OFFSET}px);
-      width: min(520px, 92vw); background: var(--surface); color: var(--ink); z-index: 2;
-      display: flex; flex-direction: column; transition: transform .22s ease;
+      position: fixed; z-index: 2; background: var(--surface); color: var(--ink);
+      display: flex; flex-direction: column;
+      border: 1px solid var(--line); border-radius: 12px;
+      box-shadow: 0 18px 50px var(--shadow);
+      opacity: 0; visibility: hidden; transform: translateY(8px);
+      transition: opacity .18s ease, transform .18s ease;
     }
-    .panel--right { right: 0; box-shadow: -12px 0 40px var(--shadow); transform: translateX(100%); }
-    .panel--left  { left: 0;  box-shadow: 12px 0 40px var(--shadow);  transform: translateX(-100%); }
-    .panel--open { transform: translateX(0); }
+    .panel--open { opacity: 1; visibility: visible; transform: none; }
 
+    /* The header doubles as the drag handle (buttons inside stay clickable). */
     .phead {
       display: flex; align-items: center; justify-content: space-between;
       padding: 12px 14px; border-bottom: 1px solid var(--line);
+      cursor: move; user-select: none; touch-action: none;
+      border-radius: 12px 12px 0 0;
     }
+    .phead button { cursor: pointer; }
     .phead__l { display: flex; align-items: center; gap: 10px; min-width: 0; }
     .mark {
       width: 28px; height: 28px; display: grid; place-items: center; flex: 0 0 auto;
@@ -298,16 +307,16 @@
       border-radius: 8px; padding: 8px 10px; font-size: 12.5px; margin-bottom: 12px;
     }
 
-    /* drag-to-resize handles */
+    /* drag-to-resize handles — every edge and corner of the window */
     .rsz { position: absolute; z-index: 5; touch-action: none; }
-    .rsz--w { top: 0; bottom: 0; width: 10px; cursor: ew-resize; }
-    .panel--right .rsz--w { left: -3px; }
-    .panel--left .rsz--w { right: -3px; }
-    .rsz--h { left: 0; right: 0; bottom: -3px; height: 10px; cursor: ns-resize; }
-    .rsz--c { width: 16px; height: 16px; bottom: 0; z-index: 6; }
-    .panel--right .rsz--c { left: 0; cursor: nesw-resize; }
-    .panel--left .rsz--c { right: 0; cursor: nwse-resize; }
-    .rsz--w:hover, .rsz--h:hover { background: rgba(37,99,235,.15); }
+    .rsz-n { top: -4px; left: 12px; right: 12px; height: 9px; cursor: ns-resize; }
+    .rsz-s { bottom: -4px; left: 12px; right: 12px; height: 9px; cursor: ns-resize; }
+    .rsz-e { right: -4px; top: 12px; bottom: 12px; width: 9px; cursor: ew-resize; }
+    .rsz-w { left: -4px; top: 12px; bottom: 12px; width: 9px; cursor: ew-resize; }
+    .rsz-ne { top: -5px; right: -5px; width: 18px; height: 18px; cursor: nesw-resize; z-index: 6; }
+    .rsz-nw { top: -5px; left: -5px; width: 18px; height: 18px; cursor: nwse-resize; z-index: 6; }
+    .rsz-se { bottom: -5px; right: -5px; width: 18px; height: 18px; cursor: nwse-resize; z-index: 6; }
+    .rsz-sw { bottom: -5px; left: -5px; width: 18px; height: 18px; cursor: nesw-resize; z-index: 6; }
 
     .tabs { display: flex; gap: 4px; padding: 6px 12px 0; border-bottom: 1px solid var(--line); }
     .tab {
@@ -356,7 +365,7 @@
   `;
 
   let els = null;
-  let side = "right";
+  let placed = false; // has the window been given an initial position/size yet?
 
   function buildOverlay() {
     const host = document.createElement("div");
@@ -372,7 +381,7 @@
       "    </button>" +
       '    <button class="launch__review" id="ud-review-quick" title="Request a Socratic review">Review</button>' +
       "  </div>" +
-      '  <aside class="panel panel--right" id="ud-panel" role="dialog" aria-label="Un-Doomed review">' +
+      '  <aside class="panel" id="ud-panel" role="dialog" aria-label="Un-Doomed review">' +
       '    <div class="phead">' +
       '      <div class="phead__l">' +
       '        <div class="mark"><svg width="26" height="26" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M37 16 H50 C73 16 84 31 84 50 C84 69 73 84 50 84 H37 Q28 84 28 75 V25 Q28 16 37 16 Z" style="stroke:var(--accent)" stroke-width="8" stroke-linejoin="round"/><path d="M45 27 H58" style="stroke:var(--accent)" stroke-width="5.5" stroke-linecap="round"/><circle cx="50.5" cy="71.5" r="4" style="fill:var(--accent)"/><path d="M13 31 L91 80" style="stroke:var(--surface)" stroke-width="18" stroke-linecap="round"/><path d="M13 31 L91 80" style="stroke:var(--accent)" stroke-width="8" stroke-linecap="round"/></svg></div>' +
@@ -384,13 +393,12 @@
       '      <div class="phead__r">' +
       '        <span class="pill pill--neutral" id="ud-pill" hidden></span>' +
       '        <button class="iconbtn" id="ud-settings" title="Settings — provider, model, API key">&#9881;</button>' +
-      '        <button class="iconbtn" id="ud-flip" title="Move to the other side">&#8646;</button>' +
       '        <button class="iconbtn iconbtn--x" id="ud-close" title="Close">&times;</button>' +
       "      </div>" +
       "    </div>" +
       '    <div class="actions">' +
       '      <button class="review-btn" id="ud-review" type="button">Request Socratic Review</button>' +
-      '      <button class="size-reset" id="ud-reset" type="button" title="Reset panel size (or double-click an edge)">&#8690;</button>' +
+      '      <button class="size-reset" id="ud-reset" type="button" title="Reset size &amp; position (or double-click a resize edge)">&#8690;</button>' +
       "    </div>" +
       '    <nav class="tabs">' +
       '      <button class="tab tab--active" id="ud-tab-current" data-tab="current">Current</button>' +
@@ -406,9 +414,14 @@
       '        <span class="foot-model" id="ud-foot-model">Settings</span>' +
       "      </button>" +
       "    </div>" +
-      '    <div class="rsz rsz--w" id="ud-rsz-w" title="Drag to resize width"></div>' +
-      '    <div class="rsz rsz--h" id="ud-rsz-h" title="Drag to resize height"></div>' +
-      '    <div class="rsz rsz--c" id="ud-rsz-c" title="Drag to resize"></div>' +
+      '    <div class="rsz rsz-n"  data-dir="n"  title="Drag to resize"></div>' +
+      '    <div class="rsz rsz-s"  data-dir="s"  title="Drag to resize"></div>' +
+      '    <div class="rsz rsz-e"  data-dir="e"  title="Drag to resize"></div>' +
+      '    <div class="rsz rsz-w"  data-dir="w"  title="Drag to resize"></div>' +
+      '    <div class="rsz rsz-ne" data-dir="ne" title="Drag to resize"></div>' +
+      '    <div class="rsz rsz-nw" data-dir="nw" title="Drag to resize"></div>' +
+      '    <div class="rsz rsz-se" data-dir="se" title="Drag to resize"></div>' +
+      '    <div class="rsz rsz-sw" data-dir="sw" title="Drag to resize"></div>' +
       "  </aside>" +
       "</div>";
 
@@ -428,31 +441,28 @@
       tabHistory: root.getElementById("ud-tab-history"),
       reviewBtn: root.getElementById("ud-review"),
       footModel: root.getElementById("ud-foot-model"),
-      rszW: root.getElementById("ud-rsz-w"),
-      rszH: root.getElementById("ud-rsz-h"),
-      rszC: root.getElementById("ud-rsz-c"),
+      phead: root.querySelector(".phead"),
     };
 
     root.getElementById("ud-toggle").addEventListener("click", () => togglePanel());
     root.getElementById("ud-review-quick").addEventListener("click", () => triggerReview());
     els.reviewBtn.addEventListener("click", () => triggerReview());
     root.getElementById("ud-close").addEventListener("click", () => openPanel(false));
-    root.getElementById("ud-flip").addEventListener("click", () => flipSide());
-    root.getElementById("ud-reset").addEventListener("click", () => resetPanelSize());
+    root.getElementById("ud-reset").addEventListener("click", () => resetWindow());
     root.getElementById("ud-settings").addEventListener("click", () => openSettings());
     root.getElementById("ud-foot-settings").addEventListener("click", () => openSettings());
     els.tabCurrent.addEventListener("click", () => switchTab("current"));
     els.tabHistory.addEventListener("click", () => switchTab("history"));
 
-    // Drag-to-resize: width (inner edge), height (bottom), corner (both).
-    els.rszW.addEventListener("pointerdown", (e) => startResize(e, "w"));
-    els.rszH.addEventListener("pointerdown", (e) => startResize(e, "h"));
-    els.rszC.addEventListener("pointerdown", (e) => startResize(e, "c"));
-    [els.rszW, els.rszH, els.rszC].forEach((h) =>
-      h.addEventListener("dblclick", () => resetPanelSize())
-    );
+    // Drag the whole window by grabbing its header.
+    els.phead.addEventListener("pointerdown", (e) => startDrag(e));
 
-    applySide();
+    // Resize from any edge or corner; double-click a handle to reset.
+    root.querySelectorAll(".rsz").forEach((h) => {
+      h.addEventListener("pointerdown", (e) => startResize(e, h.dataset.dir));
+      h.addEventListener("dblclick", () => resetWindow());
+    });
+
     applyTheme();
     watchPageTheme();
     return els;
@@ -501,52 +511,106 @@
     }
   }
 
-  function applySide() {
-    ensureOverlay();
-    const open = els.panel.classList.contains("panel--open");
-    els.panel.classList.remove("panel--left", "panel--right");
-    els.panel.classList.add(side === "left" ? "panel--left" : "panel--right");
-    if (open) els.panel.classList.add("panel--open");
+  // ---- Free-floating window: geometry, placement, drag, resize --------------
+  const MIN_W = 320;
+  const MIN_H = 240;
+
+  // Default corner + size the first time the panel opens (top-right, below
+  // LeetCode's bar) — used whenever no stored geometry exists.
+  function defaultRect() {
+    const w = Math.min(520, Math.max(MIN_W, window.innerWidth - 24));
+    const h = Math.max(MIN_H, window.innerHeight - TOP_OFFSET - 16);
+    const x = Math.max(12, window.innerWidth - w - 16);
+    const y = TOP_OFFSET;
+    return { x, y, w, h };
   }
 
-  function flipSide() {
-    side = side === "left" ? "right" : "left";
-    applySide();
-    saveSide(side);
+  // Place the window at a given rect (each missing field falls back to the
+  // default), clamped so it always stays fully on-screen and grabbable.
+  function placeWindow(win) {
+    ensureOverlay();
+    const d = defaultRect();
+    let w = win && win.w ? win.w : d.w;
+    let h = win && win.h ? win.h : d.h;
+    let x = win && win.x != null ? win.x : d.x;
+    let y = win && win.y != null ? win.y : d.y;
+    w = Math.max(MIN_W, Math.min(w, window.innerWidth));
+    h = Math.max(MIN_H, Math.min(h, window.innerHeight));
+    x = Math.max(0, Math.min(x, window.innerWidth - w));
+    y = Math.max(0, Math.min(y, window.innerHeight - h));
+    els.panel.style.width = Math.round(w) + "px";
+    els.panel.style.height = Math.round(h) + "px";
+    els.panel.style.left = Math.round(x) + "px";
+    els.panel.style.top = Math.round(y) + "px";
+    placed = true;
   }
 
-  // Apply a stored width/height (clamped to the current viewport).
-  function applySize(w, h) {
-    ensureOverlay();
-    const maxW = Math.round(window.innerWidth * 0.96);
-    const maxH = window.innerHeight - TOP_OFFSET;
-    if (w) els.panel.style.width = Math.min(w, maxW) + "px";
-    if (h) els.panel.style.height = Math.min(h, maxH) + "px";
+  function saveWinFromPanel() {
+    const r = els.panel.getBoundingClientRect();
+    saveWin(Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height));
   }
 
-  function resetPanelSize() {
+  // Restore the default position AND size — also recovers a window dragged
+  // somewhere awkward. Double-clicking any resize handle calls this too.
+  function resetWindow() {
     ensureOverlay();
-    els.panel.style.width = "";
-    els.panel.style.height = "";
+    placeWindow(null);
     chrome.storage.local
-      .remove(["undoomed_panel_w", "undoomed_panel_h"])
+      .remove(["undoomed_panel_x", "undoomed_panel_y", "undoomed_panel_w", "undoomed_panel_h"])
       .catch(() => {});
   }
 
-  // Drag a handle: mode "w" (width), "h" (height), or "c" (corner = both).
-  function startResize(e, mode) {
+  // Drag the whole window by its header. Ignores drags that start on a button,
+  // so the gear / close controls still click normally.
+  function startDrag(e) {
+    if (e.button != null && e.button !== 0) return; // primary button only
+    if (e.target.closest("button")) return;
+    ensureOverlay();
+    e.preventDefault();
+    const rect = els.panel.getBoundingClientRect();
+    const offX = e.clientX - rect.left;
+    const offY = e.clientY - rect.top;
+    const grip = e.currentTarget;
+    try {
+      grip.setPointerCapture(e.pointerId);
+    } catch (_) {
+      /* capture is best-effort */
+    }
+    document.body.style.userSelect = "none";
+
+    function onMove(ev) {
+      const w = els.panel.offsetWidth;
+      const h = els.panel.offsetHeight;
+      const x = Math.max(0, Math.min(ev.clientX - offX, window.innerWidth - w));
+      const y = Math.max(0, Math.min(ev.clientY - offY, window.innerHeight - h));
+      els.panel.style.left = Math.round(x) + "px";
+      els.panel.style.top = Math.round(y) + "px";
+    }
+    function onUp() {
+      grip.removeEventListener("pointermove", onMove);
+      grip.removeEventListener("pointerup", onUp);
+      try {
+        grip.releasePointerCapture(e.pointerId);
+      } catch (_) {
+        /* ignore */
+      }
+      document.body.style.userSelect = "";
+      saveWinFromPanel();
+    }
+    grip.addEventListener("pointermove", onMove);
+    grip.addEventListener("pointerup", onUp);
+  }
+
+  // Resize from any edge/corner. `dir` is any combination of n/s/e/w; the
+  // opposite edge stays pinned, so dragging the top or left also moves x/y.
+  function startResize(e, dir) {
     ensureOverlay();
     e.preventDefault();
     const handle = e.currentTarget;
     const rect = els.panel.getBoundingClientRect();
     const startX = e.clientX;
     const startY = e.clientY;
-    const startW = rect.width;
-    const startH = rect.height;
-    const MIN_W = 320;
-    const MIN_H = 260;
-    const maxW = Math.round(window.innerWidth * 0.96);
-    const maxH = window.innerHeight - TOP_OFFSET;
+    const s = { x: rect.left, y: rect.top, w: rect.width, h: rect.height };
 
     try {
       handle.setPointerCapture(e.pointerId);
@@ -556,15 +620,32 @@
     document.body.style.userSelect = "none";
 
     function onMove(ev) {
-      if (mode === "w" || mode === "c") {
-        // Width grows when dragging the INNER edge away from the pinned side.
-        const dw = side === "right" ? startX - ev.clientX : ev.clientX - startX;
-        els.panel.style.width = Math.max(MIN_W, Math.min(maxW, Math.round(startW + dw))) + "px";
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+      let x = s.x;
+      let y = s.y;
+      let w = s.w;
+      let h = s.h;
+      if (dir.indexOf("e") !== -1) {
+        w = Math.max(MIN_W, Math.min(s.w + dx, window.innerWidth - s.x));
       }
-      if (mode === "h" || mode === "c") {
-        els.panel.style.height =
-          Math.max(MIN_H, Math.min(maxH, Math.round(startH + (ev.clientY - startY)))) + "px";
+      if (dir.indexOf("s") !== -1) {
+        h = Math.max(MIN_H, Math.min(s.h + dy, window.innerHeight - s.y));
       }
+      if (dir.indexOf("w") !== -1) {
+        const right = s.x + s.w;
+        x = Math.min(Math.max(0, s.x + dx), right - MIN_W);
+        w = right - x;
+      }
+      if (dir.indexOf("n") !== -1) {
+        const bottom = s.y + s.h;
+        y = Math.min(Math.max(0, s.y + dy), bottom - MIN_H);
+        h = bottom - y;
+      }
+      els.panel.style.width = Math.round(w) + "px";
+      els.panel.style.height = Math.round(h) + "px";
+      els.panel.style.left = Math.round(x) + "px";
+      els.panel.style.top = Math.round(y) + "px";
     }
     function onUp() {
       handle.removeEventListener("pointermove", onMove);
@@ -575,9 +656,7 @@
         /* ignore */
       }
       document.body.style.userSelect = "";
-      const w = parseInt(els.panel.style.width, 10) || startW;
-      const h = parseInt(els.panel.style.height, 10) || startH;
-      savePanelSize(w, h);
+      saveWinFromPanel();
     }
     handle.addEventListener("pointermove", onMove);
     handle.addEventListener("pointerup", onUp);
@@ -585,6 +664,7 @@
 
   function openPanel(open) {
     ensureOverlay();
+    if (open && !placed) placeWindow(null);
     els.panel.classList.toggle("panel--open", open);
   }
   function togglePanel() {
@@ -808,10 +888,6 @@
   try {
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== "local") return;
-      if (changes.undoomed_overlay_side) {
-        side = changes.undoomed_overlay_side.newValue === "left" ? "left" : "right";
-        applySide();
-      }
       // Keep the footer's provider/model label in sync with Settings.
       if (changes.undoomed_provider || changes.undoomed_model) {
         refreshSettingsLabel();
@@ -825,11 +901,15 @@
   // 5. ON LOAD
   // -------------------------------------------------------------------------
   async function init() {
-    side = await loadSide();
     ensureOverlay();
-    applySide();
-    const size = await loadPanelSize();
-    applySize(size.w, size.h);
+    const win = await loadWin();
+    placeWindow(win);
+    // Re-clamp on browser resize so the window is never stranded off-screen.
+    window.addEventListener("resize", () => {
+      if (!els || !placed) return;
+      const r = els.panel.getBoundingClientRect();
+      placeWindow({ x: r.left, y: r.top, w: r.width, h: r.height });
+    });
     refreshSettingsLabel();
     const slug = currentSlug();
     const list = await refreshHistory(slug);
