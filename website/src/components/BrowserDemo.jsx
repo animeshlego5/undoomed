@@ -150,31 +150,40 @@ export default function BrowserDemo() {
 
         {/* Content area */}
         <div className="relative flex min-h-[430px]">
-          {/* Left problem pane */}
-          <div className="hidden w-[38%] border-r border-line p-5 text-left md:block">
+          {/* Left problem pane — LeetCode's dark description panel */}
+          <div className="hidden w-[38%] border-r border-[#333338] bg-[#262626] p-5 text-left md:block">
             <div className="flex items-center gap-2">
-              <span className="font-medium">1. Two Sum</span>
-              <span className="rounded-full border border-line px-2 font-mono text-[10px] text-muted">
+              <span className="font-medium text-[#eff1f6]">1. Two Sum</span>
+              <span className="rounded-full bg-white/10 px-2.5 py-0.5 font-mono text-[10px] text-[#00b8a3]">
                 Easy
               </span>
             </div>
-            <div className="mt-3 space-y-1.5 text-[12px] leading-relaxed text-muted">
+            <div className="mt-3 space-y-1.5 text-[12px] leading-relaxed text-[#b3b4b8]">
               <p>
-                Given an array of integers nums and an integer target, return
-                indices of the two numbers such that they add up to target.
+                Given an array of integers{" "}
+                <code className="rounded bg-white/10 px-1 font-mono text-[11px] text-[#eff1f6]">
+                  nums
+                </code>{" "}
+                and an integer{" "}
+                <code className="rounded bg-white/10 px-1 font-mono text-[11px] text-[#eff1f6]">
+                  target
+                </code>
+                , return indices of the two numbers such that they add up to
+                target.
               </p>
               <p>
                 You may assume that each input would have exactly one solution.
               </p>
               <p>You may not use the same element twice.</p>
             </div>
-            <div className="mt-4 rounded-md bg-surface p-3 font-mono text-[11px] leading-relaxed">
+            <div className="mt-4 rounded-md bg-white/[0.07] p-3 font-mono text-[11px] leading-relaxed text-[#b3b4b8]">
               <div>
-                <span className="text-muted">Input:</span> nums = [2,7,11,15],
-                target = 9
+                <span className="font-semibold text-[#eff1f6]">Input:</span>{" "}
+                nums = [2,7,11,15], target = 9
               </div>
               <div>
-                <span className="text-muted">Output:</span> [0,1]
+                <span className="font-semibold text-[#eff1f6]">Output:</span>{" "}
+                [0,1]
               </div>
             </div>
           </div>
@@ -230,7 +239,12 @@ export default function BrowserDemo() {
             <div className="flex items-center gap-2.5 border-b border-line p-3.5">
               <LogoMark size={26} knockout="#faf9f2" />
               <div className="leading-tight">
-                <div className="text-[13px] font-medium">Un-Doomed</div>
+                <div className="text-[13px] font-semibold tracking-tight">
+                  Un-
+                  <span className="line-through decoration-accent decoration-2">
+                    Doomed
+                  </span>
+                </div>
                 <div className="font-mono text-[10px] text-muted">
                   Hints, not answers.
                 </div>

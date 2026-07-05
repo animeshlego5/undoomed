@@ -1909,6 +1909,61 @@ extension in the browser's settings.
    unpacked** → pick `C:\Users\Animesh Gosain\Downloads\undoomed` again, and
    hard-reload the tab. A fresh load cannot keep a stale copy.
 
+### Prompt 42 — Fix: the count badge showed an empty dot on 0-history problems (2026-07-06)
+
+The user pointed out the white circle still appeared on the launcher even when
+the History tab said "No past reviews for this problem yet." A real bug — and
+the reason no number was ever visible: on a fresh problem there's *no count to
+show*, so it rendered as an empty dot.
+
+**Root cause:** the badge's CSS set `display: inline-grid`, and an explicit
+author `display` rule **beats the `[hidden]` attribute's `display: none`** (the
+UA rule for `hidden` has lower priority). So `els.badge.hidden = true` in
+`refreshHistory()` never actually hid the badge — it stayed on-screen (empty)
+for every problem, showing a number only when history happened to exist.
+
+**Fix:** one CSS line — `.launch__badge[hidden] { display: none; }` — whose
+selector (class + attribute) outranks the plain `.launch__badge` rule, so the
+`hidden` attribute wins again. Now the badge is **completely gone at 0 saved
+reviews** and shows the legible count only when there's ≥1.
+
+**Files touched:** `content.js` (one CSS rule),
+`website/public/undoomed-extension.zip` (rebuilt). Part of the **v1.6.0** reload.
+
+**Verified:** `content.js` passes a Node syntax check; the launcher was
+rendered from the real source in both states — the default `hidden` badge (no
+saved reviews) shows a **clean pill with no dot**, and a badge with a count
+shows the number clearly.
+
+### Prompt 41 — Drop the launcher's "Review" button; make the count legible (2026-07-06)
+
+Two follow-ups on the launcher pill:
+
+**1. Removed the "Review" button.** Since clicking **Un-Doomed** opens the
+panel — which already has its own "Request Socratic Review" button — the
+separate quick-Review button only saved one click. The launcher is now a
+**single pill** (`[⊘ Un-Doomed  ③]`); its bolt icon and split-pill styling
+were removed with it. (The in-panel review button and the keyboard/programmatic
+review path are untouched — no review functionality was lost.)
+
+**2. Made the count number actually visible.** The white circle is the
+**saved-reviews count** for the current problem, but the digit was too small
+and faint to read (it looked like an empty dot). It's now a larger circle with
+a **bold, fixed dark-blue number (`#1e40af`) on white**, so it reads clearly on
+the blue pill in any theme. It still only appears when there's at least one
+saved review (no confusing empty dot when there are none) — it's a real count,
+not a static placeholder.
+
+**Files touched:** `content.js` (launcher markup + styles, removed the
+quick-Review button and its click handler), `website/public/undoomed-extension.zip`
+(rebuilt). Still part of the **v1.6.0** reload.
+
+**Verified:** `content.js` passes a Node syntax check with zero leftover
+references to the removed button (`ud-review-quick` / `launch__review` /
+`launch__bolt`); the single pill was rendered at true 1× size in a headless
+browser (3× pixel density) and screenshotted — the "Un-Doomed" pill shows a
+crisp, readable count and no Review button.
+
 ### Prompt 40 — Launcher pill polish + explaining the "white dot" (2026-07-06)
 
 The user asked what the small **white dot** on the floating launcher pill
@@ -2139,3 +2194,25 @@ again the heavier weight that stands on its own in the nav/footer rather than
 matching the hero. One-word change in `website/src/components/Wordmark.jsx`;
 production bundle rebuilt so the running preview reflects the revert. Net effect
 of Prompts 44+45 on the codebase: none — back to the pre-Prompt-44 state.
+
+### Prompt 44 — Demo matches real LeetCode dark UI + branded panel header (2026-07-06)
+
+Two fixes to the hero demo, verified against a screenshot of the running
+build:
+
+**1. The problem pane is now LeetCode-dark.** The mock "Two Sum" description
+panel had stayed cream; it now matches the official site's dark theme
+(compared against a provided screenshot): dark grey `#262626` background,
+white title, LeetCode's teal "Easy" chip, light-grey body text with
+`nums` / `target` rendered as inline code chips, and the Input/Output
+example on a subtly lighter inset — sitting next to the darker editor pane,
+just like the real product.
+
+**2. The review panel header is branded now.** The plain "Un-Doomed" text —
+which read as boring/out of place — uses the logotype treatment: semibold
+with the blue strike through "Doomed", matching the nav, footer, and VS Code
+sidebar.
+
+**Files touched:** `website/src/components/BrowserDemo.jsx`;
+`documentation.md` (this entry). Verified: fresh build + screenshot shows
+the dark pane, teal chip, code chips, and the struck wordmark in the panel.

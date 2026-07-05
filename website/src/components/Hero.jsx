@@ -60,8 +60,12 @@ export default function Hero() {
               so the centered line never reflows while characters change. */}
           <span aria-hidden="true" className="inline-grid text-left align-baseline text-accent">
             {WORDS.map((w) => (
-              <span key={w} className="invisible col-start-1 row-start-1">
+              <span key={w} className="invisible col-start-1 row-start-1 whitespace-nowrap">
                 {w}
+                {/* reserve the caret's width too — otherwise the widest word
+                    (shipping.) plus its caret overflows the slot and nudges the
+                    centered headline left. Must match the live caret's footprint. */}
+                <span className="ml-1 inline-block w-[3px]" />
               </span>
             ))}
             <span className="col-start-1 row-start-1 whitespace-nowrap">
