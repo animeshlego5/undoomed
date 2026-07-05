@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⌁ Un-Doomed
+# Un-~~Doomed~~
 
 ### The Socratic AI code reviewer that makes you *think*.
 
@@ -46,11 +46,13 @@ flowchart LR
     subgraph Clients
       A["🧩 Browser Extension<br/>(Chrome / Edge)"]
       B["⌨️ CLI<br/>undoom check"]
+      V["🆚 VS Code Extension<br/>(Ctrl+Alt+U)"]
       D["📄 agent.md<br/>(Claude Code / Cursor)"]
     end
 
     A -->|POST /api/review| S
     B -->|POST /api/review| S
+    V -->|POST /api/review| S
     D -.runs.-> B
 
     subgraph Backend["FastAPI backend"]
@@ -135,6 +137,7 @@ keeps the Python backend out of the deploy).
 src/undoomed/      backend package (reviewers + FastAPI + CLI)
 manifest.json …    browser extension (popup, options, content scripts)
 config.js          single place to set the backend URL for the extension
+vscode-extension/  VS Code client (same server; Ctrl+Alt+U to review a file)
 agent.md           drop-in rules for Claude Code / Cursor
 website/           marketing landing page (Vite + React + Tailwind v4, via Bun)
 Dockerfile         backend container for Render/Railway

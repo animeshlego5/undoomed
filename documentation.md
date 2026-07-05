@@ -881,9 +881,16 @@ The layout (each piece is its own file in `website/src/components/`):
   (copy-to-clipboard `pip install undoomed`), **VS Code** (a setup modal for
   the new extension in `vscode-extension/` — see below), and
   **Claude `agent.md`** (modal with the file's contents + Copy/Download);
-- `Faq` (bare divider rows with a rotating plus), `Cta` (a dark ink panel),
+- `Faq` — a full-width editorial split (heading left, accordion right):
+  numbered questions that highlight and nudge right on hover, a plus that
+  rotates into an ✕, and answers that slide open smoothly; `Cta` (a dark ink
+  panel),
   `Footer`; `Modal` — one shared, accessible modal (Escape, backdrop click,
   and the X icon all close it; the page behind stops scrolling).
+- `LogoMark` — the phone-crossed-out **icon**; `Wordmark` — the **"Un-Doomed"
+  text**, where a single continuous blue stroke acts as both the hyphen after
+  "Un" and the line struck through "Doomed" (so the two always line up — see
+  Prompt 41). Both are shared by `Nav` and `Footer` so the logo never drifts.
 
 **The download is real now:** at build time a small script
 (`website/scripts/make-extension-zip.mjs`) zips the actual extension files
@@ -1797,3 +1804,226 @@ fixed. The **sidebar** is the launcher/status surface: action buttons,
 settings shortcuts, and a compact summary of the last verdict with a
 "Reopen review panel" button. Rendering the full review inside the sidebar
 was offered as an optional future tweak.
+
+### Prompt 35 — FAQ matched to the page system (2026-07-06)
+
+The FAQ section didn't match its neighbors: it sat in a narrower centered
+column, with a smaller feel and plain rows. Now (verified against full-page
+screenshots of the live build):
+
+- **Same width and alignment** as every other section (`max-w-6xl`), in the
+  page's editorial split: the "/ 03 FAQ" eyebrow, "Calm by design" heading,
+  and a new one-line intro on the LEFT; the questions on the RIGHT — same
+  shape as the "How it works" stages.
+- **More interactive:** each question now carries a mono index (01/02/03)
+  that lights up blue; hovering a row turns the question blue and nudges it
+  right; the plus rotates into an ✕; the open row stays highlighted; answers
+  still slide open smoothly and are indented to align with the question text.
+- **Type scale matched:** questions at the body-large size (bigger on
+  desktop), answers slightly larger and capped at a readable line length.
+- Bonus fix spotted in the screenshots: the closing panel's eyebrow read
+  "/ 05" after "/ 03" — it's now "/ 04".
+
+**Files touched:** `website/src/components/Faq.jsx` (rebuilt), `Cta.jsx`
+(numbering); `documentation.md` (§13, this entry).
+
+**Verified:** built and screenshotted the real page at desktop width —
+before/after — confirming the FAQ's left edge now lines up with the download
+cards, the numbered accordion renders, and the CTA reads "/ 04".
+
+### Prompt 36 — Fix: "Install the CLI" scrolled too deep (2026-07-06)
+
+Clicking the hero's "Install the CLI" button jumped so far into the
+Downloads section that the CLI card sat flush at the top of the window —
+partly under the sticky header, with no section context. Fix: anchor targets
+now reserve space when scrolled to (`scroll-margin-top`) — 72px of sticky-nav
+clearance for the section links (How it works / Downloads / FAQ) and a
+generous 220px for the deep `#cli` link, so the CLI card lands with the
+section heading still visible above it. File: `website/src/index.css`;
+verified with a fresh build.
+
+### Prompt 37 — CLI button scroll matched to the extension button (2026-07-06)
+
+The hero's "Get the browser extension" scroll (landing at the top of the
+Downloads section, heading in view) was declared the reference; "Install the
+CLI" now points at the same `#downloads` anchor, so both buttons land
+identically. The `#cli` deep anchor keeps a standard 72px sticky-nav
+clearance for any future direct links. Files: `website/src/components/Hero.jsx`,
+`website/src/index.css`; verified with a fresh build.
+
+### Prompt 38 — README brought in sync (2026-07-06)
+
+Refreshed the top-level `README.md` after the landing-page work:
+
+- **Brand match:** the title now reads "Un-~~Doomed~~" (Doomed struck
+  through) to match the site's new one-stroke wordmark.
+- **VS Code client added:** the architecture diagram and the "Project
+  layout" list previously showed only the browser extension, CLI, and
+  `agent.md`. The `vscode-extension/` folder is a real fourth client that
+  talks to the same server, so it now appears in both places.
+
+The rest of the README (quick start, backend deploy, the three-reviewer
+explanation) was already accurate and left untouched. File: `README.md`
+(and this Change Log entry).
+
+### Prompt 38 — Why the on-page panel still showed the OLD logo (2026-07-06)
+
+No code change — a diagnosis. The user reported that the extension's on-page
+panel (the drawer that appears on a LeetCode problem) still showed the **old
+"⏻" power-symbol logo** even after refreshing the tab and reloading the
+extension in the browser's settings.
+
+**What we checked (and what it proved):**
+- The panel's logo is **not an image file** — it's drawn as an inline SVG
+  right inside `content.js` (the `.mark` element in the panel header). So
+  swapping the `icons/*.png` files can never change it; only reloading
+  `content.js` can.
+- The `content.js` on disk (updated today, 02:05) already contains the **new
+  blue crossed-phone mark** from Prompt 27. The downloadable
+  `undoomed-extension.zip` was compared byte-for-byte against the source and
+  is **identical** — so neither the folder nor the download is stale.
+- The browser's own records (Chrome *and* Edge "Secure Preferences") show the
+  extension is loaded **unpacked straight from
+  `C:\Users\Animesh Gosain\Downloads\undoomed`** — the very folder with the
+  new logo. No stale copy of it exists anywhere else on the machine.
+- Git history confirms the old `.mark` used to be the literal glyph
+  `<div class="mark">⏻</div>` (Prompt 16 era) — which is exactly the dark
+  circular emblem in the screenshot.
+
+**Conclusion:** the files are correct; the browser was simply still running the
+**old injected copy** of `content.js`. Two traps cause this:
+1. **LeetCode is a single-page app.** Clicking around inside LeetCode is *not*
+   a real page load, so the new content script is never injected — the old
+   panel keeps running. Only a true reload (Ctrl+Shift+R, or a fresh tab)
+   re-injects it.
+2. **The extension is installed in both Chrome and Edge.** Reloading it in one
+   browser does nothing for a LeetCode tab open in the other.
+
+**The reliable fix (any one of these, in the browser you actually use):**
+1. Extensions page (`chrome://extensions` / `edge://extensions`) → click the
+   **Reload (↻)** icon on the Un-Doomed card. Confirm it reads **v1.5.3** and
+   the toolbar icon is now the blue mark.
+2. Then **hard-reload** the LeetCode tab: **Ctrl+Shift+R**, or close it and
+   open a brand-new tab.
+3. If it *still* shows the old ⏻ mark: **Remove** the extension, then **Load
+   unpacked** → pick `C:\Users\Animesh Gosain\Downloads\undoomed` again, and
+   hard-reload the tab. A fresh load cannot keep a stale copy.
+
+### Prompt 38 — A livelier hero (2026-07-06)
+
+The hero read as static next to the animated sections below it. Four calm
+additions, all in the site's existing visual language:
+
+- **The headline's accent word cycles**: "Start *building.*" swaps through
+  *thinking. / solving. / shipping.* every ~2.6 seconds with a quick
+  fade-and-rise, always in the brand blue.
+- **A blinking status dot** now leads the eyebrow line — the same "live"
+  dot used by the demo cards and step chips (one shared CSS class now lives
+  in `index.css`).
+- **The primary button's arrow nudges right on hover**, matching the
+  download cards' reactive feel.
+- **A mono stat strip** sits under the buttons — "3 REVIEWERS · 4 PROVIDERS
+  · 0 ANSWERS HANDED OVER" — each item tinting blue on hover.
+
+All motion stops for reduced-motion users (the word stays on "building.",
+the dot stays lit). Files: `website/src/components/Hero.jsx`,
+`website/src/index.css`. Verified with a fresh build — the cycling words,
+stat strip, and dot styles are all present in the shipped bundle.
+
+### Prompt 39 — Fix: jittery headline word cycle (2026-07-06)
+
+The cycling accent word made the hero jitter: each word is a different
+width, so the centered headline re-flowed and re-centered on every swap.
+Fix: all four words now live stacked in one grid cell, so the slot is
+permanently as wide as the widest word — the line never moves; the active
+word simply cross-fades and rises in place while the old one sinks out.
+(This also simplified the code: no more mid-swap state, just one index.)
+File: `website/src/components/Hero.jsx`; verified with a fresh build.
+
+### Prompt 40 — Clarification: the hero's blinking dot (2026-07-06)
+
+No code change — a design question. The blinking dot before the hero eyebrow
+is the site's shared "live" motif (the demo cards and the active step chip
+use the same dot), added for visual continuity and a small sign of life
+above the fold. It reports nothing real — it's rhythm, not information — and
+removing it (or freezing it to a static dot) was offered as a one-line
+change if it reads as noise.
+
+### Prompt 41 — Wordmark fix: the hyphen and strikethrough now line up (2026-07-06)
+
+**The observation:** in the "Un-Doomed" wordmark, the black hyphen after "Un"
+and the blue strikethrough over "Doomed" sat at slightly different heights and
+didn't line up.
+
+**Why they didn't:** they were two different things. The "-" was a normal black
+text character, placed by the font. The strikethrough was a separate blue CSS
+line, placed by the font's own (different) strikethrough metric. Two independent
+rulers → they rarely match, and no amount of nudging lines them up reliably
+across sizes.
+
+**The fix:** make the hyphen and the strikethrough the *same line*. There's now
+one continuous blue stroke that begins as the hyphen right after "Un" and carries
+straight through the middle of "Doomed". Because it's a single drawn line, the
+two halves can't fall out of alignment — there's nothing to align. It also
+reinforces the brand idea: the same blue stroke that crosses out the phone icon
+now crosses out "Doomed". The real text "Un-Doomed" is kept intact underneath for
+copy/paste and screen readers (the visible hyphen is hidden so the stroke stands
+in for it).
+
+**Files:** new shared component `website/src/components/Wordmark.jsx` (so the
+logo can't drift between places); wired into `website/src/components/Nav.jsx` and
+`website/src/components/Footer.jsx`, which previously each hand-rolled the markup.
+Everything in the component is sized in `em`, so it scales cleanly at any size.
+Verified by running the site and screenshotting the header.
+
+### Prompt 41 — Typewriter headline + blinking dot removed (2026-07-06)
+
+**1. The headline now types.** Instead of cross-fading, the accent word is
+**typed out character by character** (~75ms each), held for ~2 seconds,
+**backspaced** (faster, ~42ms), and replaced by the next word — building. →
+thinking. → solving. → shipping. — with a blinking caret bar after the text,
+exactly like a terminal. The width-stable slot from the previous fix stays
+(invisible copies of all four words size the space), so the centered line
+still never moves while characters change. Screen readers get a stable
+"Start building." sentence (the animation is marked decorative), and
+reduced-motion users see the full first word with a still caret.
+
+**2. The hero's blinking eyebrow dot is gone**, as requested (it was
+decorative rhythm, not information). Its now-unused shared CSS class was
+deleted too — the demo cards keep their own dots, which do indicate the
+running animations.
+
+**Files touched:** `website/src/components/Hero.jsx`,
+`website/src/index.css`. Verified with a fresh build: caret styles present,
+zero leftover references to the removed dot class.
+
+### Prompt 42 — Headline lines now left-align (2026-07-06)
+
+"Stop scrolling." and "Start <typed word>" were each centered independently,
+so the two S's didn't line up. The headline's two lines now live inside one
+inline block that is centered as a whole but left-aligned internally — both
+lines share the same left edge while the block stays visually centered in
+the hero. File: `website/src/components/Hero.jsx`; verified with a fresh
+build and a screenshot of the running dev server showing the S's aligned.
+
+### Prompt 43 — Clarification: is the logo a different font from the hero? (2026-07-06)
+
+No code change — a question. **The logo, the hero, and all body text use the
+same font.** The whole site draws from one family defined once in
+`website/src/index.css`: `--font-sans: "PP Neue Montreal", Arial, sans-serif`.
+Tailwind applies that as the default, and nothing (not the hero `<h1>`, not the
+`Wordmark` logo) overrides it. The only other face is the monospace one, used
+just for the small uppercase eyebrow labels and code.
+
+**Important caveat:** PP Neue Montreal is a commercial font that is **not
+bundled** — the `@font-face` block is commented out and there are no font files
+in `public/fonts/`. So today the site falls back to the second name in the
+stack, **Arial**, everywhere — hero and logo alike. The logo is also live text
+(the `Wordmark` component), not a baked-in image, so there's no hidden "logo
+font." Any apparent difference is **weight and size**, not typeface: the logo is
+`font-semibold` (600) at ~17px, the hero is `font-medium` (500) at ~72px.
+
+To actually change this: (a) drop licensed PP Neue Montreal `.woff2` files into
+`public/fonts/` and uncomment the `@font-face` block to switch the whole site
+off Arial; or (b) give `Wordmark` its own display font if the logo should look
+distinct from body text. Neither was done — offered as options.
