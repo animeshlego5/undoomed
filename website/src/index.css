@@ -107,9 +107,9 @@ html {
   color: #ffffff;
 }
 
-/* Typewriter caret in the hero headline */
+/* Typewriter caret in the hero headline — hard on/off, no fade between. */
 .hero-caret {
-  animation: caret-blink 1.1s steps(2, start) infinite;
+  animation: caret-blink 1.1s steps(1, end) infinite;
 }
 @keyframes caret-blink {
   50% {

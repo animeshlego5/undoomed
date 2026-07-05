@@ -214,25 +214,38 @@
     /* Keyboard focus is always visible — and always blue. */
     button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-    /* Launcher: a split pill — [toggle | Review] — bottom-right. */
+    /* Launcher: a split pill — [Un-Doomed | Review] — bottom-right. Lifts on
+       hover; a gradient gives the blue some depth. */
     .launch {
       position: fixed; right: 18px; bottom: 18px; z-index: 1;
       display: inline-flex; align-items: stretch; border-radius: 999px;
-      overflow: hidden; box-shadow: 0 6px 20px rgba(37,99,235,.35);
+      overflow: hidden;
+      box-shadow: 0 6px 22px rgba(37,99,235,.42), 0 1px 3px rgba(0,0,0,.22);
+      transition: box-shadow .2s ease, transform .2s ease;
+    }
+    .launch:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 30px rgba(37,99,235,.55), 0 2px 6px rgba(0,0,0,.25);
     }
     .launch__toggle, .launch__review {
       appearance: none; border: 0; cursor: pointer; color: #fff;
-      font: 600 13px/1 inherit; padding: 11px 14px; display: inline-flex;
-      align-items: center; gap: 7px;
+      font: 600 13px/1 inherit; padding: 11px 15px; display: inline-flex;
+      align-items: center; gap: 8px; transition: background .15s ease;
     }
     .launch__toggle { background: var(--accent); }
     .launch__toggle:hover { background: var(--accent-press); }
-    .launch__review { background: var(--accent-press); border-left: 1px solid rgba(255,255,255,.25); }
+    .launch__review {
+      background: var(--accent-press); border-left: 1px solid rgba(255,255,255,.22);
+    }
     .launch__review:hover { background: var(--accent-deep); }
+    .launch__toggle:active, .launch__review:active { filter: brightness(.94); }
+    .launch__mark { display: inline-flex; flex: 0 0 auto; }
+    .launch__bolt { flex: 0 0 auto; opacity: .95; }
+    /* History-count badge: how many saved reviews exist for this problem. */
     .launch__badge {
-      min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px;
-      background: #fff; color: var(--accent-press); font-size: 10px; font-weight: 700;
-      display: inline-grid; place-items: center;
+      min-width: 19px; height: 19px; padding: 0 6px; border-radius: 999px;
+      background: #fff; color: var(--accent-press); font: 800 11px/1 inherit;
+      display: inline-grid; place-items: center; box-shadow: 0 1px 2px rgba(0,0,0,.28);
     }
 
     /* Panel: a free-floating window. left/top/width/height are all set inline
@@ -376,10 +389,12 @@
       "<style>" + STYLE + "</style>" +
       '<div class="ui">' +
       '  <div class="launch" id="ud-launch">' +
-      '    <button class="launch__toggle" id="ud-toggle" title="Open/close Un-Doomed">' +
-      '<svg width="15" height="15" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M37 16 H50 C73 16 84 31 84 50 C84 69 73 84 50 84 H37 Q28 84 28 75 V25 Q28 16 37 16 Z" style="stroke:#ffffff" stroke-width="8" stroke-linejoin="round"/><path d="M45 27 H58" style="stroke:#ffffff" stroke-width="5.5" stroke-linecap="round"/><circle cx="50.5" cy="71.5" r="4" style="fill:#ffffff"/><path d="M13 31 L91 80" style="stroke:var(--accent)" stroke-width="18" stroke-linecap="round"/><path d="M13 31 L91 80" style="stroke:#ffffff" stroke-width="8" stroke-linecap="round"/></svg><span>Un-Doomed</span><span class="launch__badge" id="ud-badge" hidden></span>' +
+      '    <button class="launch__toggle" id="ud-toggle" title="Open or close the Un-Doomed panel">' +
+      '<span class="launch__mark"><svg width="16" height="16" viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M37 16 H50 C73 16 84 31 84 50 C84 69 73 84 50 84 H37 Q28 84 28 75 V25 Q28 16 37 16 Z" style="stroke:#ffffff" stroke-width="8" stroke-linejoin="round"/><path d="M45 27 H58" style="stroke:#ffffff" stroke-width="5.5" stroke-linecap="round"/><circle cx="50.5" cy="71.5" r="4" style="fill:#ffffff"/><path d="M13 31 L91 80" style="stroke:var(--accent)" stroke-width="18" stroke-linecap="round"/><path d="M13 31 L91 80" style="stroke:#ffffff" stroke-width="8" stroke-linecap="round"/></svg></span><span>Un-Doomed</span><span class="launch__badge" id="ud-badge" title="Saved reviews for this problem" aria-label="saved reviews for this problem" hidden></span>' +
       "    </button>" +
-      '    <button class="launch__review" id="ud-review-quick" title="Request a Socratic review">Review</button>' +
+      '    <button class="launch__review" id="ud-review-quick" title="Request a Socratic review">' +
+      '<svg class="launch__bolt" width="13" height="13" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M13 2 L3 14 L12 14 L11 22 L21 10 L12 10 Z"/></svg><span>Review</span>' +
+      "    </button>" +
       "  </div>" +
       '  <aside class="panel" id="ud-panel" role="dialog" aria-label="Un-Doomed review">' +
       '    <div class="phead">' +

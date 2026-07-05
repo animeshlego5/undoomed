@@ -1909,6 +1909,88 @@ extension in the browser's settings.
    unpacked** → pick `C:\Users\Animesh Gosain\Downloads\undoomed` again, and
    hard-reload the tab. A fresh load cannot keep a stale copy.
 
+### Prompt 40 — Launcher pill polish + explaining the "white dot" (2026-07-06)
+
+The user asked what the small **white dot** on the floating launcher pill
+(the `[⊘ Un-Doomed  ● | Review]` button at the bottom-right of a LeetCode
+page) was, and to improve that button's look.
+
+**What the dot is:** it's the **history-count badge** — how many past Socratic
+reviews are saved for the problem you're on. It only appears when at least one
+review is saved, and clicking **Un-Doomed** opens the panel where the
+**History** tab lists them (reopening a past review costs no API tokens). It
+looked like a meaningless dot only because the number was tiny and faint.
+
+**The polish (in `content.js`):**
+- The badge is now bigger, bolder, and rounder with a subtle shadow, so the
+  **count is clearly legible**, and it carries a tooltip ("Saved reviews for
+  this problem") on hover.
+- **"Review" gained a small lightning-bolt icon**, so the primary action reads
+  as an action at a glance.
+- The whole pill now **lifts slightly and deepens its shadow on hover**, has a
+  crisp pressed state, and a touch more padding — so it feels like a button,
+  not a static label.
+
+**Files touched:** `content.js` (launcher styles + markup),
+`website/public/undoomed-extension.zip` (rebuilt). Shipped as part of the same
+**v1.6.0** reload as the free-floating window (Prompt 39).
+
+**Verified:** `content.js` passes a Node syntax check; the launcher's real CSS
++ markup were rendered in a headless browser on both light and dark pages and
+screenshotted — the badge clearly shows its count, the bolt + "Review" read
+correctly, and the pill looks crisp in both themes.
+
+### Prompt 39 — The on-page panel is now a free-floating, drag-anywhere window (2026-07-06)
+
+Until now the review panel on LeetCode was a **drawer pinned to the left or
+right edge** of the screen. You could resize its width/height and flip which
+side it clung to, but it always stayed glued to an edge. The request: let you
+**put the window anywhere on screen and resize it any way you like** — and
+remove the old edge-pinning UI if it no longer fits.
+
+**What the panel does now (in `content.js`):**
+- It's a **free-floating window**: grab it **anywhere on its header** (the row
+  with the logo and title) and drag it to any spot on the page. The header
+  shows a "move" cursor so it's clearly grabbable; clicking the gear or the ✕
+  still works normally (a drag that starts on a button is ignored).
+- **Resize from any edge or any corner** — eight invisible grab-strips run
+  around the window (top, bottom, left, right, and the four corners). Dragging
+  the top or left edge moves that edge while the opposite one stays put, just
+  like a real desktop window. A sensible minimum size stops it being crushed.
+- **It remembers where you left it.** The window's position *and* size are
+  saved in the browser, so it reopens exactly where you last put it. (Old
+  saved sizes still load; only the "remember position" part is new.)
+- It now looks like a proper floating card: **rounded corners, a hairline
+  border, and a soft drop shadow**, instead of a full-height edge drawer.
+- If you ever lose the window off-screen, the **↘ reset button** (next to
+  "Request Socratic Review") — or a **double-click on any resize edge** —
+  snaps it back to the default size and corner. It also re-clamps itself when
+  you resize the browser window, so it can never get stranded out of reach.
+
+**UI removed (superseded — no functionality lost):**
+- The **⇄ "flip to other side" button** in the panel header — you can place
+  the window anywhere now, so flipping between two fixed sides is obsolete.
+- The **"On-page panel position: Right / Left" dropdown** in the extension's
+  Settings page (`options.html` / `options.js`) — same reason; its old stored
+  value is simply ignored.
+
+**Files touched:** `content.js` (floating-window drag + 8-way resize +
+position/size persistence, replacing the side-drawer code), `options.html` /
+`options.js` (removed the side selector), `manifest.json` (version →
+**1.6.0**), `website/public/undoomed-extension.zip` (rebuilt so the download
+matches), `documentation.md` (this entry).
+
+**Verified:** `content.js`, `options.js`, `popup.js`, and `background.js` all
+pass a Node syntax check; `manifest.json` is valid JSON at v1.6.0; every
+element the code wires up was confirmed present in the markup and no
+references to the removed side/flip code remain; the panel's real CSS +
+markup were rendered in a headless browser and screenshotted — confirming the
+floating rounded window, header, tabs, body, footer, and launcher all draw
+correctly with the flip button gone.
+
+**To get it:** reload the unpacked extension (confirm it now reads **v1.6.0**)
+and hard-reload the LeetCode tab, exactly as in the previous entry.
+
 ### Prompt 38 — A livelier hero (2026-07-06)
 
 The hero read as static next to the animated sections below it. Four calm
@@ -2027,3 +2109,33 @@ To actually change this: (a) drop licensed PP Neue Montreal `.woff2` files into
 `public/fonts/` and uncomment the `@font-face` block to switch the whole site
 off Arial; or (b) give `Wordmark` its own display font if the logo should look
 distinct from body text. Neither was done — offered as options.
+
+### Prompt 43 — Fix: caret blinked through a third, half-faded state (2026-07-06)
+
+The typewriter caret used a `steps(2, start)` animation, which splits each
+blink segment into two jumps — producing a half-opacity in-between frame
+(the "third color"). Now `steps(1, end)`: fully visible for half the cycle,
+fully invisible for the other half, nothing in between — a hard terminal
+blink. File: `website/src/index.css`; verified with a fresh build.
+
+### Prompt 44 — Logo weight now matches the hero (2026-07-06) — provisional
+
+Following the font clarification (Prompt 43), the ask was to make the logo
+match the hero. They already share one font family; the only difference was
+**weight** — the logo was `font-semibold` (600), the hero is `font-medium`
+(500). Changed the `Wordmark` from `font-semibold` to `font-medium` so the
+logo now renders at the hero's exact weight (both currently Arial until the
+real PP Neue Montreal face is added). One-word change in
+`website/src/components/Wordmark.jsx`; verified by running the site and
+screenshotting the nav logo above the hero headline. **Provisional** — kept
+trivially revertible (swap `font-medium` back to `font-semibold`) in case the
+lighter logo isn't preferred.
+
+### Prompt 45 — Reverted: logo back to its own weight (2026-07-06)
+
+The lighter (hero-matching) logo from Prompt 44 wasn't preferred. Reverted
+`Wordmark` from `font-medium` back to `font-semibold`, so the logo is once
+again the heavier weight that stands on its own in the nav/footer rather than
+matching the hero. One-word change in `website/src/components/Wordmark.jsx`;
+production bundle rebuilt so the running preview reflects the revert. Net effect
+of Prompts 44+45 on the codebase: none — back to the pre-Prompt-44 state.
